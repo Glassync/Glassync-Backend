@@ -1,16 +1,9 @@
 from django.contrib import admin
-from .models import Event, RecurringEvent
-
-
-class RecurringEventInline(admin.StackedInline):
-    model = RecurringEvent
-    extra = 1  # Show one extra form in the admin for adding a recurring event
+from .models import Event
 
 
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('title', 'start_time', 'end_time', 'user')
-    search_fields = ('title', 'description')
-    inlines = [RecurringEventInline]  # Add RecurringEvent inline in Event Admin
+    list_display = ('name', 'user', 'day', 'start_time', 'end_time', 'recurrence_rule')
 
 
 admin.site.register(Event, EventAdmin)

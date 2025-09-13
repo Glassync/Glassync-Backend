@@ -1,30 +1,48 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
-# Event Model
+class RecurrenceRule(models.Model):
+    class RecurrenceType(models.TextChoices):
+        DAILY = 'DAILY', 'Daily'
+        WEEKLY = 'WEEKLY', 'Weekly'
+        MONTHLY = 'MONTHLY', 'Monthly'
+        YEARLY = 'YEARLY', 'Yearly'
+
+    type = models.CharField(
+        max_length=20,
+        choices=RecurrenceType.choices,
+        default=RecurrenceType.DAILY,
+        verbose_name="Recurrence Type"
+    )
+    interval = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Interval (e.g., every X days/weeks/months)"
+    )
+
+    def __str__(self):
+        return f"Recurrence Rule: {self.type}, Interval: {self.interval}"
+
+
 class Event(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Link to the User
-    title = models.CharField(max_length=255)
-    description = models.TextField()
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    location = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="User")
+    name = models.CharField(max_length=255, default="Untitled", verbose_name="Event Name")
+    description = models.TextField(null=True, blank=True, verbose_name="Description")
+    location = models.CharField(max_length=255, null=True, blank=True, verbose_name="Location")
+
+    day = models.DateField(default=timezone.now, verbose_name="Event Day (No time)")
+
+    start_time = models.TimeField(verbose_name="Start Time")
+    end_time = models.TimeField(null=True, blank=True, default="01:00:00", verbose_name="End Time")
+    recurrence_rule = models.ForeignKey(
+        RecurrenceRule,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="events",
+        verbose_name="Recurrence Rule"
+    )
 
     def __str__(self):
-        return f"{self.title} at {self.start_time}"
-
-
-# Recurring Event Model
-class RecurringEvent(models.Model):
-    event = models.OneToOneField(Event, on_delete=models.CASCADE)
-    recurrence_type = models.CharField(max_length=20)  # daily, weekly, etc.
-    interval = models.IntegerField(default=1)  # Repeat every X days, weeks, etc.
-    days_of_week = models.CharField(max_length=255, blank=True)  # e.g., 'Monday, Wednesday'
-    month_day = models.IntegerField(blank=True, null=True)  # e.g., "15th"
-    end_date = models.DateTimeField(blank=True, null=True)
-
-    def __str__(self):
-        return f"Recurring: {self.event.title}"
-
+        return f"Event: {self.name}, on {self.day} from {self.start_time} to {self.end_time}"

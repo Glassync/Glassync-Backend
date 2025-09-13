@@ -2,10 +2,105 @@
 
 {% block content %}
     <h1>Edit Event</h1>
+
     <form method="POST">
         {% csrf_token %}
-        {{ form.as_p }}
+
+        <!-- User Dropdown -->
+        <label for="id_user">Select User</label>
+        <select name="user" id="id_user" required>
+            {% for user in users %}
+                <option value="{{ user.id }}"
+                        {% if user.id|stringformat:"s" == selected_user_id|stringformat:"s" %}selected{% endif %}>
+                    {{ user.username }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Event Fields -->
+        <label for="id_name">Event Name</label>
+        <input type="text" name="name" value="{{ event.name }}" required id="id_name">
+
+        <label for="id_description">Description</label>
+        <textarea name="description" id="id_description">{{ event.description }}</textarea>
+
+        <label for="id_location">Location</label>
+        <input type="text" name="location" value="{{ event.location }}" id="id_location">
+
+        <label for="id_day">Event Date</label>
+        <input type="date" name="day" id="id_day" value="{{ event.day|default_if_none:''|date:'Y-m-d' }}" required>
+
+        <label for="id_start_time">Start Time</label>
+        <input type="time" name="start_time" id="id_start_time" value="{{ event.start_time|default_if_none:''|time:'H:i' }}" required>
+
+        <label for="id_end_time">End Time</label>
+        <input type="time" name="end_time" value="{{ event.end_time|time:'H:i' }}" id="id_end_time">
+
+        <!-- Recurrence Toggle -->
+        <label for="id_is_recurring">Is this a recurring event?</label>
+        <input type="checkbox" name="is_recurring" id="id_is_recurring"
+               {% if event.recurrence_rule or recurrence_form.is_bound %}checked{% endif %}>
+
+        <!-- Recurrence Fields -->
+        <div id="recurrence-fields" style="display: none;">
+            <label for="id_type">Recurrence Type</label>
+            <select name="type" id="id_type">
+                {% for code, label in recurrence_form.fields.type.choices %}
+                    <option value="{{ code }}"
+                            {% if code == event.recurrence_rule.type %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+                <option value="CUSTOM" {% if recurrence_form.data.type == "CUSTOM" %}selected{% endif %}>Custom
+                    Interval
+                </option>
+            </select>
+
+            <div id="interval-field" style="display: none;">
+                <label for="id_interval">Interval (e.g., every 2 days/weeks/months)</label>
+                <input type="number" name="interval" value="{{ recurrence_form.initial.interval|default:1 }}" min="1"
+                       id="id_interval">
+            </div>
+
+            <div id="measurement-type-field" style="display: none;">
+                <label for="id_measurement_type">Measure Interval</label>
+                <select name="measurement_type" id="id_measurement_type">
+                    <option value="DAYS">Days</option>
+                    <option value="WEEKS">Weeks</option>
+                    <option value="MONTHS">Months</option>
+                    <option value="YEARS">Years</option>
+                </select>
+            </div>
+        </div>
+
         <button type="submit">Save Changes</button>
     </form>
-    <a href="{% url 'event_list' %}"><button class="btn-secondary">Back to Event List</button></a>
+
+    <a href="{% url 'event_list' %}">
+        <button class="btn-secondary">Back to Event List</button>
+    </a>
+
+    <script>
+        const recurringCheckbox = document.getElementById('id_is_recurring');
+        const recurrenceFields = document.getElementById('recurrence-fields');
+        const recurrenceType = document.getElementById('id_type');
+        const intervalField = document.getElementById('interval-field');
+        const measurementField = document.getElementById('measurement-type-field');
+
+        recurringCheckbox.addEventListener('change', () => {
+            recurrenceFields.style.display = recurringCheckbox.checked ? 'block' : 'none';
+            toggleCustomFields();
+        });
+
+        recurrenceType.addEventListener('change', toggleCustomFields);
+
+        function toggleCustomFields() {
+            const isCustom = recurrenceType.value === 'CUSTOM';
+            intervalField.style.display = isCustom ? 'block' : 'none';
+            measurementField.style.display = isCustom ? 'block' : 'none';
+        }
+
+        // Init
+        toggleCustomFields();
+        recurrenceFields.style.display = recurringCheckbox.checked ? 'block' : 'none';
+    </script>
+
 {% endblock %}

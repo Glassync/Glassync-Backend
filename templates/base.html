@@ -21,8 +21,8 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 60%;
-            max-width: 800px;
+            width: 80%;
+            max-width: 1200px;
         }
 
         h1 {
@@ -115,6 +115,12 @@
             background-color: #007bff;
             color: white;
         }
+        
+        td {
+            max-width: 120px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
 
         .table-actions button {
             margin-left: 10px;
@@ -123,6 +129,16 @@
 </head>
 <body>
 <div class="container">
+    {% if user.is_authenticated %}
+        <span>Welcome, {{ user.username }}</span>
+        <form action="{% url 'logout' %}" method="POST" style="display:inline-block;">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+        </form>
+    {% else %}
+        <a href="{% url 'login' %}">Login</a> | <a href="{% url 'register' %}">Register</a>
+    {% endif %}
+
     {% block content %}
     {% endblock %}
 </div>

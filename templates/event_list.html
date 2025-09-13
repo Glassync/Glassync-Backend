@@ -1,31 +1,50 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Event List</h1>
+    <h1>All Events</h1>
+
     <table>
-        <tr>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th>Location</th>
-            <th>Created At</th>
-            <th>Actions</th>
-        </tr>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Location</th>
+                <th>Day</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Recurrence</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
         {% for event in events %}
             <tr>
-                <td>{{ event.title }}</td>
-                <td>{{ event.description }}</td>
+                <td>{{ event.id }}</td>
+                <td>{{ event.user.username }}</td>
+                <td>{{ event.name }}</td>
+                <td>{{ event.description|default:"—" }}</td>
+                <td>{{ event.location|default:"—" }}</td>
+                <td>{{ event.day }}</td>
                 <td>{{ event.start_time }}</td>
                 <td>{{ event.end_time }}</td>
-                <td>{{ event.location }}</td>
-                <td>{{ event.created_at }}</td>
+                <td>
+                    {% if event.recurrence_rule %}
+                        {{ event.recurrence_rule.type }} ({{ event.recurrence_rule.interval }})
+                    {% else %}
+                        None
+                    {% endif %}
+                </td>
                 <td class="table-actions">
-                    <a href="{% url 'edit_event' event.id %}"><button>Edit</button></a>
-                    <a href="{% url 'delete_event' event.id %}"><button class="btn-secondary">Delete</button></a>
+                    <a href="{% url 'edit_event' event.id %}"><button style="background-color: darkseagreen">Edit</button></a>
+                    <a href="{% url 'delete_event' event.id %}"><button style="background-color: indianred">Delete</button></a>
                 </td>
             </tr>
         {% endfor %}
+        </tbody>
     </table>
+
     <a href="{% url 'create_event' %}"><button>Create New Event</button></a>
+    <a href="{% url 'filter_events' %}"><button class="btn-secondary" style="margin-top: 15px;">Filter Events by User</button></a>
 {% endblock %}

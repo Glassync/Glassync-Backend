@@ -1,32 +1,101 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Filter Events by User</h1>
-    <form method="GET">
-        <label for="user">Select User:</label>
+    <h1>Filter Events</h1>
+
+    <form method="get" style="margin-bottom: 20px;">
+        <label for="user">User:</label>
         <select name="user" id="user">
+            <option value="">All</option>
             {% for user in users %}
-                <option value="{{ user.id }}" {% if user.id == selected_user.id %}selected{% endif %}>
+                <option value="{{ user.id }}" {% if request.GET.user == user.id|stringformat:"s" %}selected{% endif %}>
                     {{ user.username }}
                 </option>
             {% endfor %}
         </select>
+
+        <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
+            <label for="recurrence">Recurrence:</label>
+            <select name="recurrence" id="recurrence">
+                <option value="">All</option>
+                <option value="DAILY" {% if request.GET.recurrence == 'DAILY' %}selected{% endif %}>Daily</option>
+                <option value="WEEKLY" {% if request.GET.recurrence == 'WEEKLY' %}selected{% endif %}>Weekly</option>
+                <option value="MONTHLY" {% if request.GET.recurrence == 'MONTHLY' %}selected{% endif %}>Monthly</option>
+                <option value="YEARLY" {% if request.GET.recurrence == 'YEARLY' %}selected{% endif %}>Yearly</option>
+                <option value="none" {% if request.GET.recurrence == 'none' %}selected{% endif %}>None</option>
+            </select>
+
+            <label for="interval">Interval:</label>
+            <input type="number" name="interval" min="1" value="{{ request.GET.interval|default_if_none:'' }}"
+                   id="interval">
+        </div>
+
+        <label for="name">Name contains:</label>
+        <input type="text" name="name" id="name" value="{{ request.GET.name }}">
+
+        <label for="location">Location contains:</label>
+        <input type="text" name="location" id="location" value="{{ request.GET.location }}">
+
+        <label for="day">On date:</label>
+        <input type="date" name="day" id="day" value="{{ request.GET.day }}">
+
         <button type="submit">Filter</button>
     </form>
 
-    <h2>Filtered Events</h2>
     <table>
+        <thead>
         <tr>
-            <th>Title</th>
+            <th>ID</th>
+            <th>User</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Location</th>
+            <th>Day</th>
             <th>Start Time</th>
             <th>End Time</th>
+            <th>Recurrence</th>
+            <th>Actions</th>
         </tr>
+        </thead>
+        <tbody>
         {% for event in events %}
             <tr>
-                <td>{{ event.title }}</td>
+                <td>{{ event.id }}</td>
+                <td>{{ event.user.username }}</td>
+                <td>{{ event.name }}</td>
+                <td style="max-width: 250px; word-wrap: break-word;">{{ event.description|default:"—" }}</td>
+                <td>{{ event.location|default:"—" }}</td>
+                <td>{{ event.day }}</td>
                 <td>{{ event.start_time }}</td>
                 <td>{{ event.end_time }}</td>
+                <td>
+                    {% if event.recurrence_rule %}
+                        {{ event.recurrence_rule.type }} ({{ event.recurrence_rule.interval }})
+                    {% else %}
+                        None
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'edit_event' event.id %}">
+                        <button>Edit</button>
+                    </a>
+                    <a href="{% url 'delete_event' event.id %}">
+                        <button class="btn-secondary">Delete</button>
+                    </a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="10">No events found.</td>
             </tr>
         {% endfor %}
+        </tbody>
     </table>
+
+    <a href="{% url 'create_event' %}">
+        <button>Create New Event</button>
+    </a>
+    <a href="{% url 'event_list' %}">
+        <button class="btn-secondary" style="margin-top: 15px;">Events List</button>
+    </a>
 {% endblock %}
