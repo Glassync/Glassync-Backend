@@ -1,10 +1,8 @@
 import pprint
+from accounts.models import CustomUser
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Event, RecurrenceRule
 from .forms import EventForm, RecurrenceRuleForm
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login
 from datetime import datetime, time, timedelta
 
 
@@ -21,13 +19,15 @@ def check_form(event_form, request):
     return is_recurring, recurrence_form, selected_user_id
 
 
-def get_or_create_recurrence_rule(type, interval):
-    rule = RecurrenceRule.objects.filter(type=type, interval=interval).first()
+def get_or_create_recurrence_rule(measurement_type, interval):
+    rule = RecurrenceRule.objects.filter(type=measurement_type, interval=interval).first()
+
     if not rule:
-        rule = RecurrenceRule.objects.create(type=type, interval=interval)
+        rule = RecurrenceRule.objects.create(type=measurement_type, interval=interval)
         print(f"[INFO] Created new recurrence rule: {rule}")
     else:
         print(f"[INFO] Reused existing recurrence rule: {rule}")
+
     return rule
 
 
@@ -40,7 +40,7 @@ def apply_end_time_logic(event):
 
 
 def create_event(request):
-    users = User.objects.all()
+    users = CustomUser.objects.all()
 
     if request.method == 'POST':
         print("\n[DEBUG] --- CREATE POST DATA ---")
@@ -51,10 +51,10 @@ def create_event(request):
 
         if event_form.is_valid() and (not is_recurring or recurrence_form.is_valid()):
             event = event_form.save(commit=False)
-            event.user = User.objects.get(id=selected_user_id)
+            event.user = CustomUser.objects.get(id=selected_user_id)
 
             if is_recurring:
-                recurrence_type = recurrence_form.cleaned_data['type']
+                recurrence_type = recurrence_form.cleaned_data['measurement_type']
                 interval = recurrence_form.cleaned_data['interval']
                 event.recurrence_rule = get_or_create_recurrence_rule(recurrence_type, interval)
 
@@ -63,7 +63,7 @@ def create_event(request):
             print("[SUCCESS] Created Event:", event)
             return redirect('event_list')
 
-        return render(request, 'create_event.html', {
+        return render(request, 'events/create_event.html', {
             'event_form': event_form,
             'recurrence_form': recurrence_form,
             'users': users,
@@ -72,7 +72,7 @@ def create_event(request):
 
     event_form = EventForm()
     recurrence_form = RecurrenceRuleForm()
-    return render(request, 'create_event.html', {
+    return render(request, 'events/create_event.html', {
         'event_form': event_form,
         'recurrence_form': recurrence_form,
         'users': users
@@ -81,7 +81,7 @@ def create_event(request):
 
 def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    users = User.objects.all()
+    users = CustomUser.objects.all()
 
     if request.method == 'POST':
         print("\n[DEBUG] --- EDIT POST DATA ---")
@@ -92,7 +92,7 @@ def edit_event(request, event_id):
 
         if event_form.is_valid() and (not is_recurring or recurrence_form.is_valid()):
             event = event_form.save(commit=False)
-            event.user = User.objects.get(id=selected_user_id)
+            event.user = CustomUser.objects.get(id=selected_user_id)
 
             if is_recurring:
                 recurrence_type = recurrence_form.cleaned_data['type']
@@ -106,7 +106,7 @@ def edit_event(request, event_id):
             print("[SUCCESS] Updated Event:", event)
             return redirect('event_list')
 
-        return render(request, 'edit_event.html', {
+        return render(request, 'events/edit_event.html', {
             'event_form': event_form,
             'recurrence_form': recurrence_form,
             'users': users,
@@ -116,7 +116,7 @@ def edit_event(request, event_id):
 
     event_form = EventForm(instance=event)
     recurrence_form = RecurrenceRuleForm()
-    return render(request, 'edit_event.html', {
+    return render(request, 'events/edit_event.html', {
         'event_form': event_form,
         'recurrence_form': recurrence_form,
         'users': users,
@@ -127,7 +127,7 @@ def edit_event(request, event_id):
 
 def event_list(request):
     events = Event.objects.all()
-    return render(request, 'event_list.html', {'events': events})
+    return render(request, 'events/event_list.html', {'events': events})
 
 
 def delete_event(request, event_id):
@@ -138,7 +138,7 @@ def delete_event(request, event_id):
 
 def filter_events(request):
     events = Event.objects.all()
-    users = User.objects.all()
+    users = CustomUser.objects.all()
 
     user_id = request.GET.get("user")
     recurrence = request.GET.get("recurrence")
@@ -164,20 +164,7 @@ def filter_events(request):
     if day:
         events = events.filter(day=day)
 
-    return render(request, 'filter_events.html', {
+    return render(request, 'events/filter_events.html', {
         'events': events,
         'users': users
     })
-
-
-def register(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('event_list')
-    else:
-        form = UserCreationForm()
-
-    return render(request, 'registration/register.html', {'form': form})

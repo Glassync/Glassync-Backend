@@ -1,19 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from accounts.models import CustomUser
 
 
 class RecurrenceRule(models.Model):
     class RecurrenceType(models.TextChoices):
-        DAILY = 'DAILY', 'Daily'
-        WEEKLY = 'WEEKLY', 'Weekly'
-        MONTHLY = 'MONTHLY', 'Monthly'
-        YEARLY = 'YEARLY', 'Yearly'
+        DAYS = 'DAYS', 'Days'
+        WEEKS = 'WEEKS', 'Weeks'
+        MONTHS = 'MONTHS', 'Months'
+        YEARS = 'YEARS', 'Years'
 
     type = models.CharField(
         max_length=20,
         choices=RecurrenceType.choices,
-        default=RecurrenceType.DAILY,
+        default=RecurrenceType.DAYS,
         verbose_name="Recurrence Type"
     )
     interval = models.PositiveIntegerField(
@@ -26,7 +27,7 @@ class RecurrenceRule(models.Model):
 
 
 class Event(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="User")
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, verbose_name="User")
     name = models.CharField(max_length=255, default="Untitled", verbose_name="Event Name")
     description = models.TextField(null=True, blank=True, verbose_name="Description")
     location = models.CharField(max_length=255, null=True, blank=True, verbose_name="Location")

@@ -6,6 +6,6 @@ from django.urls import reverse_lazy
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', lambda request: redirect(reverse_lazy('event_list'))),
-    path('accounts/', include('django.contrib.auth.urls')),
+    path('accounts/', include('accounts.urls')),
     path('events/', include('Glassync.urls')),
 ]

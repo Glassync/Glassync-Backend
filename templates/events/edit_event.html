@@ -12,7 +12,7 @@
             {% for user in users %}
                 <option value="{{ user.id }}"
                         {% if user.id|stringformat:"s" == selected_user_id|stringformat:"s" %}selected{% endif %}>
-                    {{ user.username }}
+                    {{ user.email }}
                 </option>
             {% endfor %}
         </select>
@@ -43,15 +43,13 @@
 
         <!-- Recurrence Fields -->
         <div id="recurrence-fields" style="display: none;">
-            <label for="id_type">Recurrence Type</label>
+            <label for="id_recurrence_type">Recurrence Type</label>
             <select name="type" id="id_type">
-                {% for code, label in recurrence_form.fields.type.choices %}
-                    <option value="{{ code }}"
-                            {% if code == event.recurrence_rule.type %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-                <option value="CUSTOM" {% if recurrence_form.data.type == "CUSTOM" %}selected{% endif %}>Custom
-                    Interval
-                </option>
+                <option value="DAILY" selected>Daily</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="YEARLY">Yearly</option>
+                <option value="CUSTOM">Custom Interval</option>
             </select>
 
             <div id="interval-field" style="display: none;">

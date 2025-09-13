@@ -9,7 +9,7 @@
             <option value="">All</option>
             {% for user in users %}
                 <option value="{{ user.id }}" {% if request.GET.user == user.id|stringformat:"s" %}selected{% endif %}>
-                    {{ user.username }}
+                    {{ user.email }}
                 </option>
             {% endfor %}
         </select>
@@ -61,7 +61,7 @@
         {% for event in events %}
             <tr>
                 <td>{{ event.id }}</td>
-                <td>{{ event.user.username }}</td>
+                <td>{{ event.user.email }}</td>
                 <td>{{ event.name }}</td>
                 <td style="max-width: 250px; word-wrap: break-word;">{{ event.description|default:"—" }}</td>
                 <td>{{ event.location|default:"—" }}</td>

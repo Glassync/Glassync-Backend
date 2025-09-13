@@ -22,7 +22,7 @@
         {% for event in events %}
             <tr>
                 <td>{{ event.id }}</td>
-                <td>{{ event.user.username }}</td>
+                <td>{{ event.user.email }}</td>
                 <td>{{ event.name }}</td>
                 <td>{{ event.description|default:"—" }}</td>
                 <td>{{ event.location|default:"—" }}</td>

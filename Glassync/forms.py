@@ -7,38 +7,27 @@ class RecurrenceRuleForm(forms.ModelForm):
         model = RecurrenceRule
         fields = ['type', 'interval']
 
-    measurement_type = forms.ChoiceField(
-        choices=[
-            ('DAYS', 'Days'),
-            ('WEEKS', 'Weeks'),
-            ('MONTHS', 'Months'),
-            ('YEARS', 'Years'),
-        ],
-        required=False,
-        label='Measure Interval',
-        widget=forms.Select(attrs={'style': 'display:none;'})
-    )
-
     def clean(self):
         cleaned_data = super().clean()
-        recurrence_type = cleaned_data.get('type')
+        type_value = cleaned_data.get('type')
 
-        if recurrence_type == 'CUSTOM':
-            interval = cleaned_data.get('interval')
-            measure_type = cleaned_data.get('measurement_type')
-
-            if not measure_type:
-                raise forms.ValidationError('Please select a measure type (days, weeks, months, years).')
-
-            if not interval or interval < 1:
-                raise forms.ValidationError('Interval must be a positive number.')
-
-            cleaned_data['interval'] = interval
-            cleaned_data['measure_type'] = measure_type
-
-        elif recurrence_type != 'CUSTOM':
-            cleaned_data['measurement_type'] = 'DAYS'
+        if type_value == "Daily":
+            cleaned_data['type'] = RecurrenceRule.RecurrenceType.DAYS
             cleaned_data['interval'] = 1
+        elif type_value == "Weekly":
+            cleaned_data['type'] = RecurrenceRule.RecurrenceType.WEEKS
+            cleaned_data['interval'] = 1
+        elif type_value == "Monthly":
+            cleaned_data['type'] = RecurrenceRule.RecurrenceType.MONTHS
+            cleaned_data['interval'] = 1
+        elif type_value == "Yearly":
+            cleaned_data['type'] = RecurrenceRule.RecurrenceType.YEARS
+            cleaned_data['interval'] = 1
+        elif type_value == "Custom":
+            pass
+        else:
+            print("[ERROR] Wrong RecurrenceRule Type")
+            raise forms.ValidationError("Invalid recurrence type.")
 
         return cleaned_data
 

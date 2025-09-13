@@ -130,7 +130,7 @@
 <body>
 <div class="container">
     {% if user.is_authenticated %}
-        <span>Welcome, {{ user.username }}</span>
+        <span>Welcome, {{ user.email }}</span>
         <form action="{% url 'logout' %}" method="POST" style="display:inline-block;">
             {% csrf_token %}
             <button type="submit">Logout</button>

@@ -12,7 +12,7 @@
             <option value="" disabled {% if not selected_user_id %}selected{% endif %}>Select a user</option>
             {% for user in users %}
                 <option value="{{ user.id }}" {% if user.id|stringformat:"s" == selected_user_id %}selected{% endif %}>
-                    {{ user.username }}
+                    {{ user.email }}
                 </option>
             {% endfor %}
         </select>
