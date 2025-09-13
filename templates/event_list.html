@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Event List</h1>
+    <table>
+        <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Location</th>
+            <th>Created At</th>
+            <th>Actions</th>
+        </tr>
+        {% for event in events %}
+            <tr>
+                <td>{{ event.title }}</td>
+                <td>{{ event.description }}</td>
+                <td>{{ event.start_time }}</td>
+                <td>{{ event.end_time }}</td>
+                <td>{{ event.location }}</td>
+                <td>{{ event.created_at }}</td>
+                <td class="table-actions">
+                    <a href="{% url 'edit_event' event.id %}"><button>Edit</button></a>
+                    <a href="{% url 'delete_event' event.id %}"><button class="btn-secondary">Delete</button></a>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+    <a href="{% url 'create_event' %}"><button>Create New Event</button></a>
+{% endblock %}
