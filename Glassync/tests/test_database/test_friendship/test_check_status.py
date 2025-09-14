@@ -3,7 +3,7 @@ from Glassync.models import UsersRelationship, User
 from Glassync.database.friendship.services import check_status
 
 
-class TestCheckStatus(TestCase):
+class Tests(TestCase):
     def setUp(self):
         # Create test users
         self.user1 = User.objects.create(

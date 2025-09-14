@@ -3,7 +3,7 @@ from Glassync.models import UsersRelationship, User
 from Glassync.database.friendship.services import get_relationship_row
 
 
-class TestDatabaseFriendshipGetRelationshipRow(TestCase):
+class Tests(TestCase):
     def setUp(self):
         # Create test users with email as the username
         self.user1 = User.objects.create(

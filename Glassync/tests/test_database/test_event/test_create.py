@@ -3,7 +3,7 @@ from Glassync.models import Event, User
 from Glassync.database.event.services import create_event
 
 
-class TestDatabaseEventCreate(TestCase):
+class Tests(TestCase):
     def setUp(self):
         # Create a test user
         self.creator = User.objects.create(
