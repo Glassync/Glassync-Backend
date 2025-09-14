@@ -25,7 +25,9 @@ SECRET_KEY = 'django-insecure-8ix02**xo9y-f_6cykn+)k7^(avvp-ow3$p0#i*21balxj-(p9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    ".glassync.ru"
+]
 
 
 # Application definition
