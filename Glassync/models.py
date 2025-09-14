@@ -1,14 +1,18 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 
-class User(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
-    email = models.EmailField(max_length=255, unique=True)
-    password_hash = models.CharField(max_length=255)
+class User(AbstractUser):
+    # Additional fields for customization
     nickname = models.CharField(max_length=255, null=True, blank=True)
     avatar_path = models.CharField(max_length=255, null=True, blank=True)
+
+    # Override the email field to make it unique
+    email = models.EmailField(max_length=255, unique=True)
+
+    # Use email as the unique identifier for authentication
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name']
 
 
 class Event(models.Model):
