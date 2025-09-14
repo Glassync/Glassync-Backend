@@ -3,16 +3,12 @@ from django.contrib.auth.models import AbstractUser
 
 
 class User(AbstractUser):
-    # Additional fields for customization
     nickname = models.CharField(max_length=255, null=True, blank=True)
     avatar_path = models.CharField(max_length=255, null=True, blank=True)
-
-    # Override the email field to make it unique
     email = models.EmailField(max_length=255, unique=True)
-
-    # Use email as the unique identifier for authentication
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
+    username = None
 
 
 class Event(models.Model):
