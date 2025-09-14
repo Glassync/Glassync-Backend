@@ -3,7 +3,7 @@ from django.urls import reverse
 from Glassync.models import User, Event
 
 
-class EventCreateAdditionalTests(TestCase):
+class TestApiEventCreate(TestCase):
     def setUp(self):
         # Set up a test client
         self.client = Client()
