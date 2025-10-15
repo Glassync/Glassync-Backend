@@ -83,7 +83,10 @@ def accept_friendship(user_sender, user_accepted):
         user_accepted (User): The user who accepts the request.
 
     Returns:
-        bool: True if the friendship was accepted, False otherwise.
+        dict: A dictionary with the result of the operation.
+              Example:
+              - Success: {'message': 'Friendship request accepted', 'status': 200}
+              - Error: {'error': 'No friendship request found', 'status': 400}
     """
     status = check_status(user_sender, user_accepted)
 
@@ -91,9 +94,9 @@ def accept_friendship(user_sender, user_accepted):
         relationship, _, _ = get_relationship_row(user_sender, user_accepted)
         relationship.status_user2 = True
         relationship.save()
-        return True
+        return {'message': 'Friendship request accepted', 'status': 200}
 
-    return False
+    return {'error': 'No friendship request found', 'status': 400}
 
 
 def decline_friendship(user_sender, user_declined):
@@ -105,16 +108,19 @@ def decline_friendship(user_sender, user_declined):
         user_declined (User): The user who declines the request.
 
     Returns:
-        bool: True if the friendship request was declined, False otherwise.
+        dict: A dictionary with the result of the operation.
+              Example:
+              - Success: {'message': 'Friendship request declined', 'status': 200}
+              - Error: {'error': 'No friendship request found', 'status': 400}
     """
     status = check_status(user_sender, user_declined)
 
     if status == "friend_request_sent":
         relationship, _, _ = get_relationship_row(user_sender, user_declined)
         relationship.delete()
-        return True
+        return {'message': 'Friendship request declined', 'status': 200}
 
-    return False
+    return {'error': 'No friendship request found', 'status': 400}
 
 
 def request_friendship(user_sender, user_receiver):
@@ -126,11 +132,15 @@ def request_friendship(user_sender, user_receiver):
         user_receiver (User): The user receiving the request.
 
     Returns:
-        bool: True if the friendship request was created, False otherwise.
+        dict: A dictionary with the result of the operation.
+              Example:
+              - Success: {'message': 'Friendship request sent', 'status': 201}
+              - Error: {'error': 'Friendship request could not be created', 'status': 400}
+              - Error: {'error': 'Cannot send a friend request to yourself', 'status': 400}
     """
     # Prevent users from sending a friend request to themselves
     if user_sender == user_receiver:
-        return False
+        return {'error': 'Cannot send a friend request to yourself', 'status': 400}
 
     status = check_status(user_sender, user_receiver)
 
@@ -141,9 +151,9 @@ def request_friendship(user_sender, user_receiver):
             status_user1=True,
             status_user2=False
         )
-        return True
+        return {'message': 'Friendship request sent', 'status': 201}
 
-    return False
+    return {'error': 'Friendship request could not be created', 'status': 400}
 
 
 def cancel_friendship_request(user_sender, user_receiver):
@@ -155,16 +165,19 @@ def cancel_friendship_request(user_sender, user_receiver):
         user_receiver (User): The user who received the request.
 
     Returns:
-        bool: True if the friendship request was canceled, False otherwise.
+        dict: A dictionary with the result of the operation.
+              Example:
+              - Success: {'message': 'Friendship request canceled', 'status': 200}
+              - Error: {'error': 'No friendship request found', 'status': 400}
     """
     status = check_status(user_sender, user_receiver)
 
     if status == "friend_request_sent":
         relationship, _, _ = get_relationship_row(user_sender, user_receiver)
         relationship.delete()
-        return True
+        return {'message': 'Friendship request canceled', 'status': 200}
 
-    return False
+    return {'error': 'No friendship request found', 'status': 400}
 
 
 def delete_friendship(user_sender, user_receiver):
@@ -176,13 +189,16 @@ def delete_friendship(user_sender, user_receiver):
         user_receiver (User): The other user in the friendship.
 
     Returns:
-        bool: True if the friendship was deleted, False otherwise.
+        dict: A dictionary with the result of the operation.
+              Example:
+              - Success: {'message': 'Friendship deleted', 'status': 200}
+              - Error: {'error': 'No friendship found to delete', 'status': 400}
     """
     status = check_status(user_sender, user_receiver)
 
     if status == "friends":
         relationship, _, _ = get_relationship_row(user_sender, user_receiver)
         relationship.delete()
-        return True
+        return {'message': 'Friendship deleted', 'status': 200}
 
-    return False
+    return {'error': 'No friendship found to delete', 'status': 400}
