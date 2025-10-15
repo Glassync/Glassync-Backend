@@ -172,9 +172,42 @@ def update(request):
     # Return error if not POST method
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+
+@csrf_protect
+@login_required
 def delete(request):
-    data = {'message': 'OK'}
-    return JsonResponse(data, status=200)
+    """
+    Handles the HTTP request for deleting an event.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        JsonResponse: A JSON response with the result of the operation.
+    """
+    if request.method == 'DELETE':
+        try:
+            # Parse JSON data from the request body
+            data = json.loads(request.body)
+            event_id = data.get("event_id")
+
+            # Call the delete_event function
+            result = delete_event(event_id=event_id, user_id=request.user.id)
+
+            # Check for errors in the result
+            if 'error' in result:
+                return JsonResponse({'error': result['error']}, status=result['status'])
+
+            # Success response
+            return JsonResponse({'message': result['message']}, status=result['status'])
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': 'An unexpected error occurred', 'details': str(e)}, status=500)
+
+    # Return error if not DELETE method
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 def action(request):
