@@ -128,6 +128,10 @@ def request_friendship(user_sender, user_receiver):
     Returns:
         bool: True if the friendship request was created, False otherwise.
     """
+    # Prevent users from sending a friend request to themselves
+    if user_sender == user_receiver:
+        return False
+
     status = check_status(user_sender, user_receiver)
 
     if status == "not_friends":
