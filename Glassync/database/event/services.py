@@ -4,25 +4,39 @@ from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 
 
-def create_event(name, description, date, time_start, time_end, recurrence_rule_type, recurrence_rule_interval, creator):
+def create_or_update_event(event_id=None, name=None, description=None, date=None, time_start=None, time_end=None,
+                           recurrence_rule_type=None, recurrence_rule_interval=None, creator=None):
     """
-    Handles the creation of an event in the database.
+    Handles creating or updating an event in the database.
 
     Args:
-        name (str): The name of the event.
-        description (str): The description of the event.
-        date (str): The event's date (in 'YYYY-MM-DD' format).
-        time_start (str): The start time (in 'HH:MM:SS' format, or None).
-        time_end (str): The end time (in 'HH:MM:SS' format, or None).
-        recurrence_rule_type (str): The recurrence rule type (daily/weekly/monthly).
-        recurrence_rule_interval (int): The recurrence rule interval.
-        creator (User): The user creating the event.
+        event_id (int, optional): The ID of the event to update (if updating).
+        name (str, optional): The name of the event.
+        description (str, optional): The description of the event.
+        date (str, optional): The event's date (in 'YYYY-MM-DD' format).
+        time_start (str, optional): The start time (in 'HH:MM:SS' format, or None).
+        time_end (str, optional): The end time (in 'HH:MM:SS' format, or None).
+        recurrence_rule_type (str, optional): The recurrence rule type (daily/weekly/monthly).
+        recurrence_rule_interval (int, optional): The recurrence rule interval.
+        creator (User, optional): The user creating the event (required for creation).
 
     Returns:
-        dict: A dictionary with either the created event object or error details.
+        dict: A dictionary with either the event object or error details.
     """
-    # Validate required fields
-    if not all([name, date]):
+    if event_id:
+        # Update existing event
+        try:
+            event = Event.objects.get(id=event_id)
+        except ObjectDoesNotExist:
+            return {'error': f'Event with ID {event_id} does not exist', 'status': 404}
+    else:
+        # Create a new event
+        if not creator:
+            return {'error': 'Creator is required for creating a new event', 'status': 400}
+        event = Event(creator=creator)
+
+    # Validate required fields for creation
+    if not event_id and not all([name, date]):
         return {'error': 'Missing required fields: name or date', 'status': 400}
 
     # Validate time_start and time_end
@@ -45,31 +59,37 @@ def create_event(name, description, date, time_start, time_end, recurrence_rule_
     if recurrence_rule_interval is not None:
         try:
             recurrence_rule_interval = int(recurrence_rule_interval)
-            if recurrence_rule_interval <= 0 or recurrence_rule_interval > 1000:  # Example limit
+            if recurrence_rule_interval <= 0 or recurrence_rule_interval > 1000:
                 return {'error': 'recurrence_rule_interval must be a positive integer and less than or equal to 1000', 'status': 400}
         except ValueError:
             return {'error': 'recurrence_rule_interval must be a valid integer', 'status': 400}
 
     # Convert date field
-    try:
-        date = datetime.strptime(date, '%Y-%m-%d').date()
-    except ValueError:
-        return {'error': 'Invalid date format. Use YYYY-MM-DD', 'status': 400}
+    if date:
+        try:
+            event.date = datetime.strptime(date, '%Y-%m-%d').date()
+        except ValueError:
+            return {'error': 'Invalid date format. Use YYYY-MM-DD', 'status': 400}
 
-    # Create the event
-    event = Event.objects.create(
-        name=name,
-        description=description,
-        date=date,
-        time_start=time_start_obj if time_start else None,
-        time_end=time_end_obj if time_end else None,
-        recurrence_rule_type=recurrence_rule_type,
-        recurrence_rule_interval=recurrence_rule_interval,
-        creator=creator
-    )
+    # Update event fields
+    if name is not None:
+        event.name = name
+    if description is not None:
+        event.description = description
+    if time_start_obj is not None:
+        event.time_start = time_start_obj
+    if time_end_obj is not None:
+        event.time_end = time_end_obj
+    if recurrence_rule_type is not None:
+        event.recurrence_rule_type = recurrence_rule_type
+    if recurrence_rule_interval is not None:
+        event.recurrence_rule_interval = recurrence_rule_interval
 
-    # Return the created event
-    return {'event': event, 'status': 201}
+    # Save the event (create or update)
+    event.save()
+
+    # Return the event
+    return {'event': event, 'status': 201 if not event_id else 200}
 
 
 def can_view_event(user_id, event_id):

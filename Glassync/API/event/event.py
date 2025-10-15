@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
-from Glassync.database.event.services import create_event
+from Glassync.database.event.services import create_or_update_event
 import json
 
 
@@ -32,7 +32,7 @@ def create(request):
             recurrence_rule_interval = data.get("recurrence_rule_interval", None)
 
             # Call the create_event function
-            result = create_event(
+            result = create_or_update_event(
                 name=name,
                 description=description,
                 date=date,

@@ -1,6 +1,6 @@
 from django.test import TestCase
 from Glassync.models import Event, User
-from Glassync.database.event.services import create_event
+from Glassync.database.event.services import create_or_update_event
 
 
 class Tests(TestCase):
@@ -14,7 +14,7 @@ class Tests(TestCase):
 
     def test_valid_event_creation(self):
         """Test creating an event with valid data."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="A valid test event",
             date="2025-05-15",
@@ -30,7 +30,7 @@ class Tests(TestCase):
 
     def test_missing_required_fields(self):
         """Test creating an event with missing required fields."""
-        result = create_event(
+        result = create_or_update_event(
             name="",  # Missing name
             description="Missing required fields",
             date="",
@@ -46,7 +46,7 @@ class Tests(TestCase):
 
     def test_invalid_time_format(self):
         """Test creating an event with invalid time format."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="Invalid time format",
             date="2025-05-15",
@@ -62,7 +62,7 @@ class Tests(TestCase):
 
     def test_time_start_after_time_end(self):
         """Test creating an event where time_start is after time_end."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="time_start after time_end",
             date="2025-05-15",
@@ -78,7 +78,7 @@ class Tests(TestCase):
 
     def test_invalid_recurrence_rule_type(self):
         """Test creating an event with an invalid recurrence_rule_type."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="Invalid recurrence_rule_type",
             date="2025-05-15",
@@ -94,7 +94,7 @@ class Tests(TestCase):
 
     def test_invalid_recurrence_rule_interval(self):
         """Test creating an event with an invalid recurrence_rule_interval."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="Invalid recurrence_rule_interval",
             date="2025-05-15",
@@ -110,7 +110,7 @@ class Tests(TestCase):
 
     def test_negative_recurrence_rule_interval(self):
         """Test creating an event with a negative recurrence_rule_interval."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="Negative recurrence_rule_interval",
             date="2025-05-15",
@@ -126,7 +126,7 @@ class Tests(TestCase):
 
     def test_large_recurrence_rule_interval(self):
         """Test creating an event with an excessively large recurrence_rule_interval."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="Excessively large recurrence_rule_interval",
             date="2025-05-15",
@@ -142,7 +142,7 @@ class Tests(TestCase):
 
     def test_invalid_date_format(self):
         """Test creating an event with an invalid date format."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="Invalid date format",
             date="15-05-2025",  # Invalid format
@@ -158,7 +158,7 @@ class Tests(TestCase):
 
     def test_event_creation_without_optional_fields(self):
         """Test creating an event without optional fields."""
-        result = create_event(
+        result = create_or_update_event(
             name="Test Event",
             description="No optional fields",
             date="2025-05-15",
