@@ -236,3 +236,38 @@ def get_event_by_user_and_date(own_uid, user_uid, start_datetime, end_datetime, 
     except Exception as e:
         # Handle any unexpected errors
         return []
+
+
+def delete_event(event_id, user_id):
+    """
+    Deletes an event and all associated EventMember rows, ensuring only the creator can delete it.
+
+    Args:
+        event_id (int): The ID of the event to delete.
+        user_id (int): The ID of the user attempting to delete the event.
+
+    Returns:
+        dict: A dictionary with the result of the operation.
+              Example:
+              - Success: {'message': 'Event deleted successfully', 'status': 200}
+              - Error: {'error': 'Event not found', 'status': 404}
+              - Permission Denied: {'error': 'Permission denied. Only the creator can delete this event.', 'status': 403}
+    """
+    try:
+        # Fetch the event
+        event = Event.objects.get(id=event_id)
+
+        # Check if the user is the creator of the event
+        if event.creator_id != user_id:
+            return {'error': 'Permission denied. Only the creator can delete this event.', 'status': 403}
+
+        # Delete all associated EventMember rows
+        EventMember.objects.filter(id_event_id=event_id).delete()
+
+        # Delete the event
+        event.delete()
+
+        return {'message': 'Event and associated members deleted successfully', 'status': 200}
+
+    except ObjectDoesNotExist:
+        return {'error': 'Event not found', 'status': 404}
