@@ -13,7 +13,8 @@ class Tests(TestCase):
         )
 
     def test_valid_event_creation(self):
-        """Test creating an event with valid data."""
+        """Test creating an event with valid data and verifying it exists in the database."""
+        # Call the function to create the event
         result = create_or_update_event(
             name="Test Event",
             description="A valid test event",
@@ -24,9 +25,22 @@ class Tests(TestCase):
             recurrence_rule_interval=1,
             creator=self.creator
         )
+
+        # Assert no errors in the result
         self.assertNotIn('error', result)
         self.assertEqual(result['status'], 201)
         self.assertIsInstance(result['event'], Event)
+
+        # Verify the event exists in the database
+        created_event = Event.objects.get(id=result['event'].id)
+        self.assertEqual(created_event.name, "Test Event")
+        self.assertEqual(created_event.description, "A valid test event")
+        self.assertEqual(str(created_event.date), "2025-05-15")
+        self.assertEqual(str(created_event.time_start), "10:00:00")
+        self.assertEqual(str(created_event.time_end), "11:00:00")
+        self.assertEqual(created_event.recurrence_rule_type, "daily")
+        self.assertEqual(created_event.recurrence_rule_interval, 1)
+        self.assertEqual(created_event.creator, self.creator)
 
     def test_missing_required_fields(self):
         """Test creating an event with missing required fields."""
@@ -90,7 +104,7 @@ class Tests(TestCase):
         )
         self.assertIn('error', result)
         self.assertEqual(result['status'], 400)
-        self.assertEqual(result['error'], 'Invalid recurrence_rule_type. Must be one of [\'daily\', \'weekly\', \'monthly\']')
+        self.assertEqual(result['error'], 'Invalid recurrence_rule_type. Must be one of [\'daily\', \'weekly\', \'monthly\', \'yearly\']')
 
     def test_invalid_recurrence_rule_interval(self):
         """Test creating an event with an invalid recurrence_rule_interval."""

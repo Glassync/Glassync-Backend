@@ -57,7 +57,7 @@ def create_or_update_event(event_id=None, name=None, description=None, date=None
             return {'error': 'Invalid time format. Use HH:MM:SS', 'status': 400}
 
     # Validate recurrence_rule_type
-    valid_recurrence_rule_types = ["daily", "weekly", "monthly"]
+    valid_recurrence_rule_types = ["daily", "weekly", "monthly", "yearly"]
     if recurrence_rule_type and recurrence_rule_type not in valid_recurrence_rule_types:
         return {'error': f'Invalid recurrence_rule_type. Must be one of {valid_recurrence_rule_types}', 'status': 400}
 
