@@ -117,9 +117,60 @@ def get(request):
 @csrf_protect
 @login_required
 def update(request):
-    data = {'message': 'OK'}
-    return JsonResponse(data, status=200)
+    """
+    Handles the HTTP request for updating an event.
 
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        JsonResponse: A JSON response with the result of the operation.
+    """
+    if request.method == 'POST':
+        try:
+            # Parse JSON data from the request body
+            data = json.loads(request.body)
+
+            # Extract parameters
+            event_id = data.get("event_id")
+            name = data.get("name")
+            description = data.get("description", "")
+            date = data.get("date")
+            time_start = data.get("time_start", None)
+            time_end = data.get("time_end", None)
+            recurrence_rule_type = data.get("recurrence_rule_type", None)
+            recurrence_rule_interval = data.get("recurrence_rule_interval", None)
+
+            # Call the update_event function
+            result = create_or_update_event(
+                event_id=event_id,
+                name=name,
+                description=description,
+                date=date,
+                time_start=time_start,
+                time_end=time_end,
+                recurrence_rule_type=recurrence_rule_type,
+                recurrence_rule_interval=recurrence_rule_interval,
+                user_id=request.user.id
+            )
+
+            # Check for errors in the result
+            if 'error' in result:
+                return JsonResponse({'error': result['error']}, status=result['status'])
+
+            # Success response
+            return JsonResponse({
+                'message': 'Event updated successfully',
+                'event_id': result['event'].id
+            }, status=result['status'])
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': 'An unexpected error occurred', 'details': str(e)}, status=500)
+
+    # Return error if not POST method
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 def delete(request):
     data = {'message': 'OK'}
