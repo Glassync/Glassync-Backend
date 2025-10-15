@@ -1,7 +1,8 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
-from Glassync.database.event.services import create_or_update_event
+from Glassync.database.event.services import create_or_update_event, get_event_by_uids, get_event_by_user_and_date, delete_event
+from datetime import datetime
 import json
 
 
@@ -60,11 +61,61 @@ def create(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
+@csrf_protect
+@login_required
 def get(request):
-    data = {'message': 'OK'}
-    return JsonResponse(data, status=200)
+    """
+    Handles the HTTP request for retrieving events.
+
+    Decides between `get_event_by_uids` or `get_event_by_user_and_date` based on the provided JSON payload.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        JsonResponse: A JSON response with the list of events or error details.
+    """
+    if request.method == 'POST':
+        try:
+            # Parse JSON data from the request body
+            data = json.loads(request.body)
+
+            # Determine which function to use based on the provided keys
+            if "event_uids" in data:
+                # Use get_event_by_uids
+                event_uids = data.get("event_uids", [])
+                detailed = data.get("detailed", False)
+                result = get_event_by_uids(user_uid=request.user.id, event_uids=event_uids, detailed=detailed)
+            elif "user_uid" in data and "start_datetime" in data and "end_datetime" in data:
+                # Use get_event_by_user_and_date
+                own_uid = request.user.id
+                user_uid = data["user_uid"]
+                start_datetime = datetime.fromisoformat(data["start_datetime"])
+                end_datetime = datetime.fromisoformat(data["end_datetime"])
+                detailed = data.get("detailed", False)
+                result = get_event_by_user_and_date(own_uid=own_uid, user_uid=user_uid, start_datetime=start_datetime,
+                                                    end_datetime=end_datetime, detailed=detailed)
+            else:
+                # Invalid input
+                return JsonResponse({'error': 'Invalid input. Provide either "event_uids" or "user_uid" with date range.'},
+                                    status=400)
+
+            # Success response
+            return JsonResponse({'events': result}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except ValueError as e:
+            return JsonResponse({'error': 'Invalid date format. Use ISO 8601 format.', 'details': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': 'An unexpected error occurred', 'details': str(e)}, status=500)
+
+    # Return error if not POST method
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
+@csrf_protect
+@login_required
 def update(request):
     data = {'message': 'OK'}
     return JsonResponse(data, status=200)
