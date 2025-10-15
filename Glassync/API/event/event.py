@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from Glassync.database.event.services import create_or_update_event, get_event_by_uids, get_event_by_user_and_date, delete_event
+from Glassync.database.event.actions import accept_group_event_invite, decline_group_event_invite, quit_group_event, invite_to_group_event
 from datetime import datetime
 import json
 
@@ -210,6 +211,59 @@ def delete(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
+@csrf_protect
+@login_required
 def action(request):
-    data = {'message': 'OK'}
-    return JsonResponse(data, status=200)
+    """
+    Handle group event-related actions dynamically.
+
+    Args:
+        request: The HTTP request containing `event_id`, `action`, and possibly additional data.
+
+    Returns:
+        JsonResponse: A JSON response with the result of the action.
+    """
+    if request.method != "POST":
+        return JsonResponse({'error': 'Invalid request method. Use POST.'}, status=405)
+
+    try:
+        # Parse the JSON body of the request
+        body = json.loads(request.body)
+        event_id = body.get('event_id')
+        action_type = body.get('action')
+        extra_data = body.get('extra_data', {})
+
+        # Validate required fields
+        if not event_id or not action_type:
+            return JsonResponse({'error': 'Missing required fields: event_id or action'}, status=400)
+
+        # Map action types to their corresponding functions
+        action_map = {
+            'invite': invite_to_group_event,
+            'accept_invite': accept_group_event_invite,
+            'decline_invite': decline_group_event_invite,
+            'quit': quit_group_event,
+        }
+
+        # Check if the action is valid
+        if action_type not in action_map:
+            return JsonResponse({'error': f'Invalid action: {action_type}'}, status=400)
+
+        # Call the corresponding action function
+        if action_type == 'invite':
+            # For inviting, we need `user_id` of the invitee in extra_data
+            invitee_id = extra_data.get('user_id')
+            if not invitee_id:
+                return JsonResponse({'error': 'Missing user_id in extra_data for invite action'}, status=400)
+            result = action_map[action_type](user_owner=request.user.id, user_id=invitee_id, event_id=event_id)
+        else:
+            # For other actions, just pass user_id and event_id
+            result = action_map[action_type](user_id=request.user.id, event_id=event_id)
+
+        # Return the result of the action
+        return JsonResponse(result, status=result.get('status', 500))
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
