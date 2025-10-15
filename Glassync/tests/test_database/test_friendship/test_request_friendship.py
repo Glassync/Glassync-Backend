@@ -3,8 +3,9 @@ from Glassync.models import UsersRelationship, User
 from Glassync.database.friendship.services import request_friendship, check_status
 
 
-class Tests(TestCase):
+class TestRequestFriendship(TestCase):
     def setUp(self):
+        """Set up test data."""
         # Create test users
         self.user1 = User.objects.create(
             first_name="Alice",
@@ -49,7 +50,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = request_friendship(self.user1, self.user3)
-        self.assertTrue(result)
+        self.assertIn('message', result)
+        self.assertNotIn('error', result)
+        self.assertEqual(result['status'], 201)
+        self.assertEqual(result['message'], 'Friendship request sent')
 
         # Verify that the relationship has been created
         relationship_exists = UsersRelationship.objects.filter(id_user1=self.user1, id_user2=self.user3).exists()
@@ -67,7 +71,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = request_friendship(self.user1, self.user2)
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'Friendship request could not be created')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user1, self.user2)
@@ -81,7 +88,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = request_friendship(self.user3, self.user4)
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'Friendship request could not be created')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user3, self.user4)
@@ -95,7 +105,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = request_friendship(self.user4, self.user3)  # Reversed direction
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'Friendship request could not be created')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user4, self.user3)
@@ -109,7 +122,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = request_friendship(self.user1, self.user1)
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'Cannot send a friend request to yourself')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user1, self.user1)

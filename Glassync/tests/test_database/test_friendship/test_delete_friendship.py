@@ -5,6 +5,7 @@ from Glassync.database.friendship.services import delete_friendship, check_statu
 
 class TestDeleteFriendship(TestCase):
     def setUp(self):
+        """Set up test data."""
         # Create test users
         self.user1 = User.objects.create(
             first_name="Alice",
@@ -49,7 +50,10 @@ class TestDeleteFriendship(TestCase):
 
         # Perform the action
         result = delete_friendship(self.user1, self.user2)
-        self.assertTrue(result)
+        self.assertIn('message', result)
+        self.assertNotIn('error', result)
+        self.assertEqual(result['status'], 200)
+        self.assertEqual(result['message'], 'Friendship deleted')
 
         # Verify that the relationship has been deleted
         relationship_exists = UsersRelationship.objects.filter(id_user1=self.user1, id_user2=self.user2).exists()
@@ -67,7 +71,10 @@ class TestDeleteFriendship(TestCase):
 
         # Perform the action
         result = delete_friendship(self.user1, self.user4)
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'No friendship found to delete')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user1, self.user4)
@@ -81,7 +88,10 @@ class TestDeleteFriendship(TestCase):
 
         # Perform the action
         result = delete_friendship(self.user3, self.user4)
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'No friendship found to delete')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user3, self.user4)

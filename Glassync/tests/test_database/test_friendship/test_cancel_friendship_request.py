@@ -5,6 +5,7 @@ from Glassync.database.friendship.services import cancel_friendship_request, che
 
 class Tests(TestCase):
     def setUp(self):
+        """Set up test data."""
         # Create test users
         self.user1 = User.objects.create(
             first_name="Alice",
@@ -49,7 +50,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = cancel_friendship_request(self.user1, self.user2)
-        self.assertTrue(result)
+        self.assertIn('message', result)
+        self.assertNotIn('error', result)
+        self.assertEqual(result['status'], 200)
+        self.assertEqual(result['message'], 'Friendship request canceled')
 
         # Verify that the relationship has been deleted
         relationship_exists = UsersRelationship.objects.filter(id_user1=self.user1, id_user2=self.user2).exists()
@@ -67,7 +71,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = cancel_friendship_request(self.user3, self.user4)
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'No friendship request found')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user3, self.user4)
@@ -81,7 +88,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = cancel_friendship_request(self.user2, self.user1)  # Reversed direction
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'No friendship request found')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user2, self.user1)
@@ -95,7 +105,10 @@ class Tests(TestCase):
 
         # Perform the action
         result = cancel_friendship_request(self.user1, self.user4)
-        self.assertFalse(result)
+        self.assertIn('error', result)
+        self.assertNotIn('message', result)
+        self.assertEqual(result['status'], 400)
+        self.assertEqual(result['error'], 'No friendship request found')
 
         # Verify that the status remains unchanged
         updated_status = check_status(self.user1, self.user4)
