@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 
 def create_or_update_event(event_id=None, name=None, description=None, date=None, time_start=None, time_end=None,
-                           recurrence_rule_type=None, recurrence_rule_interval=None, creator=None):
+                           recurrence_rule_type=None, recurrence_rule_interval=None, creator=None, user_id=None):
     """
     Handles creating or updating an event in the database.
 
@@ -19,6 +19,7 @@ def create_or_update_event(event_id=None, name=None, description=None, date=None
         recurrence_rule_type (str, optional): The recurrence rule type (daily/weekly/monthly).
         recurrence_rule_interval (int, optional): The recurrence rule interval.
         creator (User, optional): The user creating the event (required for creation).
+        user_id (int, optional): The ID of the user attempting to create or update the event.
 
     Returns:
         dict: A dictionary with either the event object or error details.
@@ -29,6 +30,11 @@ def create_or_update_event(event_id=None, name=None, description=None, date=None
             event = Event.objects.get(id=event_id)
         except ObjectDoesNotExist:
             return {'error': f'Event with ID {event_id} does not exist', 'status': 404}
+
+        # Check if the user is the creator of the event
+        if event.creator_id != user_id:
+            return {'error': 'Permission denied. Only the creator can edit this event.', 'status': 403}
+
     else:
         # Create a new event
         if not creator:
