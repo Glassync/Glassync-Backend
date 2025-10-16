@@ -11,7 +11,7 @@ import json
 @login_required
 def create(request):
     """
-    Handles the HTTP request for creating an event, delegates to `create_event`.
+    Handles the HTTP request for creating an event.
 
     Args:
         request (HttpRequest): The HTTP request object.
@@ -19,47 +19,33 @@ def create(request):
     Returns:
         JsonResponse: A JSON response with the result of the operation.
     """
-    if request.method == 'POST':
-        try:
-            # Parse JSON data from the request body
-            data = json.loads(request.body)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
 
-            # Extract parameters
-            name = data.get("name")
-            description = data.get("description", "")
-            date = data.get("date")
-            time_start = data.get("time_start", None)
-            time_end = data.get("time_end", None)
-            recurrence_rule_type = data.get("recurrence_rule_type", None)
-            recurrence_rule_interval = data.get("recurrence_rule_interval", None)
+    try:
+        data = json.loads(request.body)
+        result = create_or_update_event(
+            name=data.get("name"),
+            description=data.get("description", ""),
+            date=data.get("date"),
+            time_start=data.get("time_start"),
+            time_end=data.get("time_end"),
+            recurrence_rule_type=data.get("recurrence_rule_type"),
+            recurrence_rule_interval=data.get("recurrence_rule_interval"),
+            creator=request.user
+        )
+        if 'error' in result:
+            return JsonResponse({'error': result['error']}, status=result['status'])
 
-            # Call the create_event function
-            result = create_or_update_event(
-                name=name,
-                description=description,
-                date=date,
-                time_start=time_start,
-                time_end=time_end,
-                recurrence_rule_type=recurrence_rule_type,
-                recurrence_rule_interval=recurrence_rule_interval,
-                creator=request.user
-            )
+        return JsonResponse({
+            'message': 'Event created successfully',
+            'event_id': result['event'].id
+        }, status=result['status'])
 
-            # Check for errors in the result
-            if 'error' in result:
-                return JsonResponse({'error': result['error']}, status=result['status'])
-
-            # Success response
-            return JsonResponse({
-                'message': 'Event created successfully',
-                'event_id': result['event'].id
-            }, status=result['status'])
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-
-    # Return error if not POST method
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 
 @csrf_protect
@@ -68,51 +54,43 @@ def get(request):
     """
     Handles the HTTP request for retrieving events.
 
-    Decides between `get_event_by_uids` or `get_event_by_user_and_date` based on the provided JSON payload.
-
     Args:
         request (HttpRequest): The HTTP request object.
 
     Returns:
         JsonResponse: A JSON response with the list of events or error details.
     """
-    if request.method == 'POST':
-        try:
-            # Parse JSON data from the request body
-            data = json.loads(request.body)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
 
-            # Determine which function to use based on the provided keys
-            if "event_uids" in data:
-                # Use get_event_by_uids
-                event_uids = data.get("event_uids", [])
-                detailed = data.get("detailed", False)
-                result = get_event_by_uids(user_uid=request.user.id, event_uids=event_uids, detailed=detailed)
-            elif "user_uid" in data and "start_datetime" in data and "end_datetime" in data:
-                # Use get_event_by_user_and_date
-                own_uid = request.user.id
-                user_uid = data["user_uid"]
-                start_datetime = datetime.fromisoformat(data["start_datetime"])
-                end_datetime = datetime.fromisoformat(data["end_datetime"])
-                detailed = data.get("detailed", False)
-                result = get_event_by_user_and_date(own_uid=own_uid, user_uid=user_uid, start_datetime=start_datetime,
-                                                    end_datetime=end_datetime, detailed=detailed)
-            else:
-                # Invalid input
-                return JsonResponse({'error': 'Invalid input. Provide either "event_uids" or "user_uid" with date range.'},
-                                    status=400)
+    try:
+        data = json.loads(request.body)
+        if "event_uids" in data:
+            result = get_event_by_uids(
+                user_uid=request.user.id,
+                event_uids=data.get("event_uids", []),
+                detailed=data.get("detailed", False)
+            )
+        elif "user_uid" in data and "start_datetime" in data and "end_datetime" in data:
+            result = get_event_by_user_and_date(
+                own_uid=request.user.id,
+                user_uid=data["user_uid"],
+                start_datetime=datetime.fromisoformat(data["start_datetime"]),
+                end_datetime=datetime.fromisoformat(data["end_datetime"]),
+                detailed=data.get("detailed", False)
+            )
+        else:
+            return JsonResponse({'error': 'Invalid input. Provide either "event_uids" or "user_uid" with date range.'},
+                                status=400)
 
-            # Success response
-            return JsonResponse({'events': result}, status=200)
+        return JsonResponse({'events': result}, status=200)
 
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-        except ValueError as e:
-            return JsonResponse({'error': 'Invalid date format. Use ISO 8601 format.', 'details': str(e)}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': 'An unexpected error occurred', 'details': str(e)}, status=500)
-
-    # Return error if not POST method
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except ValueError as e:
+        return JsonResponse({'error': f'Invalid date format: {str(e)}. Use ISO 8601 format.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 
 @csrf_protect
@@ -127,51 +105,34 @@ def update(request):
     Returns:
         JsonResponse: A JSON response with the result of the operation.
     """
-    if request.method == 'POST':
-        try:
-            # Parse JSON data from the request body
-            data = json.loads(request.body)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
 
-            # Extract parameters
-            event_id = data.get("event_id")
-            name = data.get("name")
-            description = data.get("description", "")
-            date = data.get("date")
-            time_start = data.get("time_start", None)
-            time_end = data.get("time_end", None)
-            recurrence_rule_type = data.get("recurrence_rule_type", None)
-            recurrence_rule_interval = data.get("recurrence_rule_interval", None)
+    try:
+        data = json.loads(request.body)
+        result = create_or_update_event(
+            event_id=data.get("event_id"),
+            name=data.get("name"),
+            description=data.get("description", ""),
+            date=data.get("date"),
+            time_start=data.get("time_start"),
+            time_end=data.get("time_end"),
+            recurrence_rule_type=data.get("recurrence_rule_type"),
+            recurrence_rule_interval=data.get("recurrence_rule_interval"),
+            user_id=request.user.id
+        )
+        if 'error' in result:
+            return JsonResponse({'error': result['error']}, status=result['status'])
 
-            # Call the update_event function
-            result = create_or_update_event(
-                event_id=event_id,
-                name=name,
-                description=description,
-                date=date,
-                time_start=time_start,
-                time_end=time_end,
-                recurrence_rule_type=recurrence_rule_type,
-                recurrence_rule_interval=recurrence_rule_interval,
-                user_id=request.user.id
-            )
+        return JsonResponse({
+            'message': 'Event updated successfully',
+            'event_id': result['event'].id
+        }, status=result['status'])
 
-            # Check for errors in the result
-            if 'error' in result:
-                return JsonResponse({'error': result['error']}, status=result['status'])
-
-            # Success response
-            return JsonResponse({
-                'message': 'Event updated successfully',
-                'event_id': result['event'].id
-            }, status=result['status'])
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': 'An unexpected error occurred', 'details': str(e)}, status=500)
-
-    # Return error if not POST method
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 
 @csrf_protect
@@ -186,29 +147,24 @@ def delete(request):
     Returns:
         JsonResponse: A JSON response with the result of the operation.
     """
-    if request.method == 'DELETE':
-        try:
-            # Parse JSON data from the request body
-            data = json.loads(request.body)
-            event_id = data.get("event_id")
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
 
-            # Call the delete_event function
-            result = delete_event(event_id=event_id, user_id=request.user.id)
+    try:
+        data = json.loads(request.body)
+        result = delete_event(
+            event_id=data.get("event_id"),
+            user_id=request.user.id
+        )
+        if 'error' in result:
+            return JsonResponse({'error': result['error']}, status=result['status'])
 
-            # Check for errors in the result
-            if 'error' in result:
-                return JsonResponse({'error': result['error']}, status=result['status'])
+        return JsonResponse({'message': result['message']}, status=result['status'])
 
-            # Success response
-            return JsonResponse({'message': result['message']}, status=result['status'])
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': 'An unexpected error occurred', 'details': str(e)}, status=500)
-
-    # Return error if not DELETE method
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 
 @csrf_protect
@@ -223,21 +179,18 @@ def action(request):
     Returns:
         JsonResponse: A JSON response with the result of the action.
     """
-    if request.method != "POST":
-        return JsonResponse({'error': 'Invalid request method. Use POST.'}, status=405)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
 
     try:
-        # Parse the JSON body of the request
         body = json.loads(request.body)
         event_id = body.get('event_id')
         action_type = body.get('action')
         extra_data = body.get('extra_data', {})
 
-        # Validate required fields
         if not event_id or not action_type:
             return JsonResponse({'error': 'Missing required fields: event_id or action'}, status=400)
 
-        # Map action types to their corresponding functions
         action_map = {
             'invite': invite_to_group_event,
             'accept_invite': accept_group_event_invite,
@@ -245,25 +198,27 @@ def action(request):
             'quit': quit_group_event,
         }
 
-        # Check if the action is valid
         if action_type not in action_map:
             return JsonResponse({'error': f'Invalid action: {action_type}'}, status=400)
 
-        # Call the corresponding action function
         if action_type == 'invite':
-            # For inviting, we need `user_id` of the invitee in extra_data
             invitee_id = extra_data.get('user_id')
             if not invitee_id:
                 return JsonResponse({'error': 'Missing user_id in extra_data for invite action'}, status=400)
-            result = action_map[action_type](user_owner=request.user.id, user_id=invitee_id, event_id=event_id)
+            result = action_map[action_type](
+                user_owner=request.user.id,
+                user_id=invitee_id,
+                event_id=event_id
+            )
         else:
-            # For other actions, just pass user_id and event_id
-            result = action_map[action_type](user_id=request.user.id, event_id=event_id)
+            result = action_map[action_type](
+                user_id=request.user.id,
+                event_id=event_id
+            )
 
-        # Return the result of the action
         return JsonResponse(result, status=result.get('status', 500))
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON body'}, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
