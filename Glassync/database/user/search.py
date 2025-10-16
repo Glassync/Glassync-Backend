@@ -41,39 +41,57 @@ def get_friends(user_id: int):
         return {"error": f"An unexpected error occurred: {str(e)}"}, 500
 
 
-def find_users(searcher_id: int, request_string: str, relationship_filter: str = "all"):
+def find_users(
+    searcher_id: int,
+    request_string: str,
+    relationship_filter: str = "all",
+    request_filter: str = "all"
+):
     """
-    Find up to 50 users by their first name, last name, or a combination of both.
-    Optionally filter the results based on the relationship status.
+    Find up to 50 users by their first name, last name, nickname, or email.
+    Optionally filter the results based on relationship status.
 
     Args:
         searcher_id (int): The ID of the user performing the search.
-        request_string (str): The search string, which may include a first name, last name, or both.
+        request_string (str): The search string to match users.
         relationship_filter (str): Filter results by relationship status.
-                                   Options: "friends", "friend_request_sent", "friend_request_received",
-                                            "not_friends", "all".
+                                   Options: "friends", "friend_request_sent",
+                                            "friend_request_received", "not_friends", "all".
+        request_filter (str): Specifies which fields to search on.
+                              Options: "full_name", "nickname", "email", "all".
 
     Returns:
         tuple: A tuple containing a list of matching users (as dictionaries) and the HTTP status code.
     """
     try:
-        # Split the request string by spaces
-        search_terms = request_string.split()
+        # Validate request_filter
+        valid_request_filters = {"full_name", "nickname", "email", "all"}
+        if request_filter not in valid_request_filters:
+            return {"error": f"Invalid request filter. Use one of {valid_request_filters}."}, 400
 
-        # Start building the query
+        # Validate relationship_filter
+        valid_relationship_filters = {"friends", "friend_request_sent", "friend_request_received", "not_friends", "all"}
+        if relationship_filter not in valid_relationship_filters:
+            return {"error": f"Invalid relationship filter. Use one of {valid_relationship_filters}."}, 400
+
+        # Build the search query based on request_filter
         query = Q()
-
-        # If there are two terms, assume first name and last name
-        if len(search_terms) == 2:
-            first_name, last_name = search_terms
-            query |= Q(first_name__icontains=first_name, last_name__icontains=last_name)
-        elif len(search_terms) == 1:
-            # Single term could match either first name or last name
-            term = search_terms[0]
-            query |= Q(first_name__icontains=term) | Q(last_name__icontains=term)
-        else:
-            # Invalid or empty search string
-            return {"error": "Invalid search string"}, 400
+        if request_filter == "full_name":
+            # Split the request string to handle first name and last name
+            search_terms = request_string.split()
+            if len(search_terms) == 2:
+                query |= Q(first_name__icontains=search_terms[0], last_name__icontains=search_terms[1])
+            elif len(search_terms) == 1:
+                query |= Q(first_name__icontains=request_string) | Q(last_name__icontains=request_string)
+            else:
+                return {"error": "Invalid search string for full name. Provide a first and/or last name."}, 400
+        elif request_filter == "nickname":
+            query |= Q(nickname__icontains=request_string)
+        elif request_filter == "email":
+            query |= Q(email__icontains=request_string)
+        elif request_filter == "all":
+            query |= Q(first_name__icontains=request_string) | Q(last_name__icontains=request_string)
+            query |= Q(nickname__icontains=request_string) | Q(email__icontains=request_string)
 
         # Exclude the searcher themselves and apply the query
         matching_users = User.objects.filter(query).exclude(id=searcher_id)
