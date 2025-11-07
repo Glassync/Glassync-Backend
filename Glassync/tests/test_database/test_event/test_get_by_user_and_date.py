@@ -1,4 +1,4 @@
-from datetime import datetime, time, date, timedelta
+from datetime import date
 from django.test import TestCase
 from Glassync.models import Event, EventMember, User
 from Glassync.database.event.services import get_event_by_user_and_date, are_friends
@@ -30,16 +30,16 @@ class TestGetEventByUserAndDate(TestCase):
             name="Event Created by Alice",
             description="Alice's event",
             date=date(2025, 5, 20),
-            time_start=time(10, 0, 0),
-            time_end=time(12, 0, 0),
+            time_start="10:00:00",
+            time_end="12:00:00",
             creator=self.user1
         )
         self.event2 = Event.objects.create(
             name="Event Created by Bob",
             description="Bob's event",
             date=date(2025, 5, 21),
-            time_start=time(14, 0, 0),
-            time_end=time(16, 0, 0),
+            time_start="14:00:00",
+            time_end="16:00:00",
             creator=self.user2
         )
 
@@ -56,8 +56,8 @@ class TestGetEventByUserAndDate(TestCase):
         result = get_event_by_user_and_date(
             own_uid=self.user1.id,
             user_uid=self.user3.id,
-            start_datetime=datetime(2025, 5, 19, 0, 0, 0),
-            end_datetime=datetime(2025, 5, 22, 23, 59, 59),
+            start_date=date(2025, 5, 19),
+            end_date=date(2025, 5, 22),
         )
         self.assertEqual(result, [])
 
@@ -67,8 +67,8 @@ class TestGetEventByUserAndDate(TestCase):
         result = get_event_by_user_and_date(
             own_uid=self.user1.id,
             user_uid=self.user3.id,
-            start_datetime=datetime(2025, 5, 19, 0, 0, 0),
-            end_datetime=datetime(2025, 5, 22, 23, 59, 59),
+            start_date=date(2025, 5, 19),
+            end_date=date(2025, 5, 22),
         )
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["id"], self.event2.id)
@@ -78,8 +78,8 @@ class TestGetEventByUserAndDate(TestCase):
         result = get_event_by_user_and_date(
             own_uid=self.user1.id,
             user_uid=self.user1.id,
-            start_datetime=datetime(2025, 5, 19, 0, 0, 0),
-            end_datetime=datetime(2025, 5, 22, 23, 59, 59),
+            start_date=date(2025, 5, 19),
+            end_date=date(2025, 5, 22),
         )
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["id"], self.event1.id)
@@ -89,8 +89,8 @@ class TestGetEventByUserAndDate(TestCase):
         result = get_event_by_user_and_date(
             own_uid=self.user1.id,
             user_uid=self.user1.id,
-            start_datetime=datetime(2025, 5, 19, 0, 0, 0),
-            end_datetime=datetime(2025, 5, 22, 23, 59, 59),
+            start_date=date(2025, 5, 19),
+            end_date=date(2025, 5, 22),
             detailed=True,
         )
         self.assertEqual(len(result), 1)
@@ -103,8 +103,8 @@ class TestGetEventByUserAndDate(TestCase):
         result = get_event_by_user_and_date(
             own_uid=self.user1.id,
             user_uid=self.user1.id,
-            start_datetime=datetime(2025, 5, 19, 0, 0, 0),
-            end_datetime=datetime(2025, 5, 22, 23, 59, 59),
+            start_date=date(2025, 5, 19),
+            end_date=date(2025, 5, 22),
             detailed=False,
         )
         self.assertEqual(len(result), 1)
@@ -117,7 +117,7 @@ class TestGetEventByUserAndDate(TestCase):
         result = get_event_by_user_and_date(
             own_uid=self.user1.id,
             user_uid=self.user1.id,
-            start_datetime=datetime(2025, 5, 22, 0, 0, 0),
-            end_datetime=datetime(2025, 5, 23, 23, 59, 59),
+            start_date=date(2025, 5, 22),
+            end_date=date(2025, 5, 23),
         )
         self.assertEqual(result, [])

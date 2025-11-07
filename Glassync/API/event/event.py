@@ -71,12 +71,13 @@ def get(request):
                 event_uids=data.get("event_uids", []),
                 detailed=data.get("detailed", False)
             )
-        elif "user_uid" in data and "start_datetime" in data and "end_datetime" in data:
+        elif "user_uid" in data and "start_date" in data and "end_date" in data:
+            # Adjusted to handle start_date and end_date
             result = get_event_by_user_and_date(
                 own_uid=request.user.id,
                 user_uid=data["user_uid"],
-                start_datetime=datetime.fromisoformat(data["start_datetime"]),
-                end_datetime=datetime.fromisoformat(data["end_datetime"]),
+                start_date=datetime.fromisoformat(data["start_date"]).date(),
+                end_date=datetime.fromisoformat(data["end_date"]).date(),
                 detailed=data.get("detailed", False)
             )
         else:

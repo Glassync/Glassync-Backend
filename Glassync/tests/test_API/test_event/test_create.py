@@ -110,3 +110,5 @@ class Tests(TestCase):
         response = self.client.post(self.url, self.valid_event_data, content_type='application/json')
         self.assertEqual(response.status_code, 302)  # Redirect to login for unauthenticated user
         self.assertEqual(Event.objects.count(), 0)
+
+

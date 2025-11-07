@@ -173,15 +173,15 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
         return []
 
 
-def get_event_by_user_and_date(own_uid, user_uid, start_datetime, end_datetime, detailed=False):
+def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed=False):
     """
-    Fetch events for a specific user within a given time range, ensuring access is allowed.
+    Fetch events for a specific user within a given date range, ensuring access is allowed.
 
     Args:
         own_uid (int): Your user ID.
         user_uid (int): The UID of the user whose events to fetch.
-        start_datetime (datetime): Start of the search range.
-        end_datetime (datetime): End of the search range.
+        start_date (date): Start of the search range.
+        end_date (date): End of the search range.
         detailed (bool): Whether to include detailed information.
 
     Returns:
@@ -195,9 +195,7 @@ def get_event_by_user_and_date(own_uid, user_uid, start_datetime, end_datetime, 
         # Fetch events where user_uid is the creator
         creator_events = Event.objects.filter(
             creator_id=user_uid,
-            date__range=[start_datetime.date(), end_datetime.date()],
-            time_start__gte=start_datetime.time(),
-            time_end__lte=end_datetime.time(),
+            date__range=[start_date, end_date],
         )
 
         # Fetch events where user_uid is a member and has accepted the invitation
@@ -206,9 +204,7 @@ def get_event_by_user_and_date(own_uid, user_uid, start_datetime, end_datetime, 
                 id_user_id=user_uid,
                 accept_invitation=True
             ).values_list('id_event_id', flat=True),
-            date__range=[start_datetime.date(), end_datetime.date()],
-            time_start__gte=start_datetime.time(),
-            time_end__lte=end_datetime.time(),
+            date__range=[start_date, end_date],
         )
 
         # Combine the two querysets and remove duplicates
