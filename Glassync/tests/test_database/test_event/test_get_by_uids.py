@@ -21,6 +21,7 @@ class TestGetEventByUids(TestCase):
 
         # Create test events
         self.event1 = Event.objects.create(
+            id=101,
             name="Event Created by Alice",
             description="This is Alice's event.",
             date="2025-05-15",
@@ -31,6 +32,7 @@ class TestGetEventByUids(TestCase):
             creator=self.user1
         )
         self.event2 = Event.objects.create(
+            id=102,
             name="Event Created by Bob",
             description="This is Bob's event.",
             date="2025-05-16",
@@ -41,6 +43,7 @@ class TestGetEventByUids(TestCase):
             creator=self.user2
         )
         self.event3 = Event.objects.create(
+            id=103,
             name="Event Created by Alice",
             description="Another event by Alice",
             date="2025-05-17",
@@ -60,9 +63,9 @@ class TestGetEventByUids(TestCase):
             detailed=False,
         )
         self.assertEqual(len(result), 3)
-        self.assertEqual(result[0]["id"], self.event1.id)
-        self.assertEqual(result[1]["id"], self.event2.id)
-        self.assertEqual(result[2]["id"], self.event3.id)
+        self.assertIn(self.event1.id, result)
+        self.assertIn(self.event2.id, result)
+        self.assertIn(self.event3.id, result)
 
     @patch("Glassync.database.event.services.can_view_event")
     def test_get_some_events_accessible(self, mock_can_view_event):
@@ -78,8 +81,9 @@ class TestGetEventByUids(TestCase):
             detailed=False,
         )
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0]["id"], self.event1.id)
-        self.assertEqual(result[1]["id"], self.event3.id)
+        self.assertIn(self.event1.id, result)
+        self.assertIn(self.event3.id, result)
+        self.assertNotIn(self.event2.id, result)
 
     @patch("Glassync.database.event.services.can_view_event", return_value=False)
     def test_no_events_accessible(self, mock_can_view_event):
@@ -89,7 +93,7 @@ class TestGetEventByUids(TestCase):
             event_uids=[self.event1.id, self.event2.id, self.event3.id],
             detailed=False,
         )
-        self.assertEqual(result, [])
+        self.assertEqual(result, {})
 
     @patch("Glassync.database.event.services.can_view_event", return_value=True)
     def test_detailed_events(self, mock_can_view_event):
@@ -100,11 +104,12 @@ class TestGetEventByUids(TestCase):
             detailed=True,
         )
         self.assertEqual(len(result), 2)
-        self.assertIn("description", result[0])
-        self.assertIn("recurrence_rule_type", result[0])
-        self.assertEqual(result[0]["id"], self.event1.id)
-        self.assertIn("description", result[1])
-        self.assertEqual(result[1]["id"], self.event2.id)
+        self.assertIn(self.event1.id, result)
+        self.assertIn("description", result[self.event1.id])
+        self.assertIn("recurrence_rule_type", result[self.event1.id])
+        self.assertEqual(result[self.event1.id]["id"], self.event1.id)
+        self.assertIn("description", result[self.event2.id])
+        self.assertEqual(result[self.event2.id]["id"], self.event2.id)
 
     @patch("Glassync.database.event.services.can_view_event", return_value=True)
     def test_non_detailed_events(self, mock_can_view_event):
@@ -115,12 +120,13 @@ class TestGetEventByUids(TestCase):
             detailed=False,
         )
         self.assertEqual(len(result), 2)
-        self.assertNotIn("description", result[0])
-        self.assertIn("id", result[0])
-        self.assertIn("name", result[0])
-        self.assertEqual(result[0]["id"], self.event1.id)
-        self.assertNotIn("description", result[1])
-        self.assertEqual(result[1]["id"], self.event2.id)
+        self.assertIn(self.event1.id, result)
+        self.assertNotIn("description", result[self.event1.id])
+        self.assertIn("id", result[self.event1.id])
+        self.assertIn("name", result[self.event1.id])
+        self.assertEqual(result[self.event1.id]["id"], self.event1.id)
+        self.assertNotIn("description", result[self.event2.id])
+        self.assertEqual(result[self.event2.id]["id"], self.event2.id)
 
     @patch("Glassync.database.event.services.can_view_event")
     def test_no_matching_event_ids(self, mock_can_view_event):
@@ -131,4 +137,4 @@ class TestGetEventByUids(TestCase):
             event_uids=[999, 1000],  # Non-existent event IDs
             detailed=False,
         )
-        self.assertEqual(result, [])
+        self.assertEqual(result, {})

@@ -27,19 +27,25 @@ class TestGetEventByUserAndDate(TestCase):
 
         # Create test events
         self.event1 = Event.objects.create(
+            id=101,
             name="Event Created by Alice",
             description="Alice's event",
             date=date(2025, 5, 20),
             time_start="10:00:00",
             time_end="12:00:00",
+            recurrence_rule_type="daily",
+            recurrence_rule_interval=1,
             creator=self.user1
         )
         self.event2 = Event.objects.create(
+            id=102,
             name="Event Created by Bob",
             description="Bob's event",
             date=date(2025, 5, 21),
             time_start="14:00:00",
             time_end="16:00:00",
+            recurrence_rule_type="weekly",
+            recurrence_rule_interval=2,
             creator=self.user2
         )
 
@@ -59,7 +65,7 @@ class TestGetEventByUserAndDate(TestCase):
             start_date=date(2025, 5, 19),
             end_date=date(2025, 5, 22),
         )
-        self.assertEqual(result, [])
+        self.assertEqual(result, {})
 
     @patch("Glassync.database.event.services.are_friends", return_value=True)
     def test_access_as_friend(self, mock_are_friends):
@@ -71,7 +77,8 @@ class TestGetEventByUserAndDate(TestCase):
             end_date=date(2025, 5, 22),
         )
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["id"], self.event2.id)
+        self.assertIn(self.event2.id, result)
+        self.assertEqual(result[self.event2.id]["id"], self.event2.id)
 
     def test_access_as_self(self):
         """Test that events are returned if the requesting user is the same as the user_uid."""
@@ -82,7 +89,8 @@ class TestGetEventByUserAndDate(TestCase):
             end_date=date(2025, 5, 22),
         )
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["id"], self.event1.id)
+        self.assertIn(self.event1.id, result)
+        self.assertEqual(result[self.event1.id]["id"], self.event1.id)
 
     def test_events_detailed(self):
         """Test that detailed event data is returned when detailed=True."""
@@ -94,9 +102,11 @@ class TestGetEventByUserAndDate(TestCase):
             detailed=True,
         )
         self.assertEqual(len(result), 1)
-        self.assertIn("description", result[0])
-        self.assertIn("recurrence_rule_type", result[0])
-        self.assertEqual(result[0]["id"], self.event1.id)
+        self.assertIn(self.event1.id, result)
+        event = result[self.event1.id]
+        self.assertIn("description", event)
+        self.assertIn("recurrence_rule_type", event)
+        self.assertEqual(event["id"], self.event1.id)
 
     def test_events_non_detailed(self):
         """Test that non-detailed event data is returned when detailed=False."""
@@ -108,9 +118,12 @@ class TestGetEventByUserAndDate(TestCase):
             detailed=False,
         )
         self.assertEqual(len(result), 1)
-        self.assertNotIn("description", result[0])
-        self.assertIn("id", result[0])
-        self.assertEqual(result[0]["id"], self.event1.id)
+        self.assertIn(self.event1.id, result)
+        event = result[self.event1.id]
+        self.assertNotIn("description", event)
+        self.assertIn("id", event)
+        self.assertIn("name", event)
+        self.assertEqual(event["id"], self.event1.id)
 
     def test_no_events_in_date_range(self):
         """Test that no events are returned if none exist in the given date range."""
@@ -120,4 +133,4 @@ class TestGetEventByUserAndDate(TestCase):
             start_date=date(2025, 5, 22),
             end_date=date(2025, 5, 23),
         )
-        self.assertEqual(result, [])
+        self.assertEqual(result, {})

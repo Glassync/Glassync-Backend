@@ -139,17 +139,17 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
         detailed (bool): Whether to include detailed information.
 
     Returns:
-        list[dict]: List of event data or detailed event data for accessible events.
+        dict: Dictionary of event data or detailed event data for accessible events, keyed by event ID.
     """
     try:
         events = Event.objects.filter(id__in=event_uids)
-        result = []
+        result = {}
 
         for event in events:
             # Check if the user can view the event
             if can_view_event(user_uid, event.id):
                 if detailed:
-                    result.append({
+                    result[event.id] = {
                         "id": event.id,
                         "name": event.name,
                         "description": event.description,
@@ -159,18 +159,18 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
                         "recurrence_rule_type": event.recurrence_rule_type,
                         "recurrence_rule_interval": event.recurrence_rule_interval,
                         "creator_id": event.creator_id,
-                    })
+                    }
                 else:
-                    result.append({
+                    result[event.id] = {
                         "id": event.id,
                         "name": event.name,
                         "date": event.date,
-                    })
+                    }
 
         return result
 
     except ObjectDoesNotExist:
-        return []
+        return {}
 
 
 def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed=False):
@@ -185,11 +185,11 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
         detailed (bool): Whether to include detailed information.
 
     Returns:
-        list[dict]: List of event data or detailed event data.
+        dict: Dictionary of event data or detailed event data, keyed by event ID.
     """
     # Check if the user has access to view events
     if own_uid != user_uid and not are_friends(own_uid, user_uid):
-        return []  # Access denied
+        return {}  # Access denied
 
     try:
         # Fetch events where user_uid is the creator
@@ -211,9 +211,10 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
         all_events = (creator_events | member_events).distinct()
 
         # Format the response
-        if detailed:
-            return [
-                {
+        result = {}
+        for event in all_events:
+            if detailed:
+                result[event.id] = {
                     "id": event.id,
                     "name": event.name,
                     "description": event.description,
@@ -224,14 +225,18 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
                     "recurrence_rule_interval": event.recurrence_rule_interval,
                     "creator_id": event.creator_id,
                 }
-                for event in all_events
-            ]
-        else:
-            return [{"id": event.id, "name": event.name, "date": event.date} for event in all_events]
+            else:
+                result[event.id] = {
+                    "id": event.id,
+                    "name": event.name,
+                    "date": event.date,
+                }
+
+        return result
 
     except Exception as e:
         # Handle any unexpected errors
-        return []
+        return {}
 
 
 def delete_event(event_id, user_id):

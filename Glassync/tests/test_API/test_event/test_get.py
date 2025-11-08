@@ -50,8 +50,8 @@ class GetEventsTests(TestCase):
         # Assert response
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content, {
-            "events": [
-                {
+            "events": {
+                "1": {
                     "id": event1.id,
                     "name": event1.name,
                     "date": str(event1.date),
@@ -62,7 +62,7 @@ class GetEventsTests(TestCase):
                     "recurrence_rule_type": event1.recurrence_rule_type,
                     "recurrence_rule_interval": event1.recurrence_rule_interval
                 }
-            ]
+            }
         })
 
     def test_get_events_by_user_and_date_valid(self):
@@ -164,7 +164,13 @@ class GetEventsTests(TestCase):
 
         # Assert response content contains expected fields
         self.assertEqual(len(response_data["events"]), 1)
-        event = response_data["events"][0]
+
+        # Access the event by iterating through the dictionary
+        event_id = list(response_data["events"].keys())[0]  # Get the first event ID
+        event = response_data["events"][event_id]  # Access the event by its ID
+
+        # Validate the event fields
+        self.assertEqual(int(event_id), event_in_range.id)  # Ensure the event ID matches
         self.assertEqual(event["id"], event_in_range.id)
         self.assertEqual(event["name"], event_in_range.name)
         self.assertEqual(event["date"], str(event_in_range.date))
@@ -234,7 +240,7 @@ class GetEventsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(response.content, {"events": []})
+        self.assertJSONEqual(response.content, {"events": {}})
 
     @patch("Glassync.models.Event.objects.filter")
     def test_get_events_by_user_and_date_no_results(self, mock_filter):
@@ -253,4 +259,4 @@ class GetEventsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(response.content, {"events": []})
+        self.assertJSONEqual(response.content, {"events": {}})
