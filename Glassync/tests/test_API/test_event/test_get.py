@@ -60,7 +60,8 @@ class GetEventsTests(TestCase):
                     "description": event1.description,
                     "creator_id": event1.creator_id,
                     "recurrence_rule_type": event1.recurrence_rule_type,
-                    "recurrence_rule_interval": event1.recurrence_rule_interval
+                    "recurrence_rule_interval": event1.recurrence_rule_interval,
+                    "notifications": None
                 }
             }
         })

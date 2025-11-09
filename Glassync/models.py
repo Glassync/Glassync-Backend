@@ -21,6 +21,7 @@ class Event(models.Model):
     recurrence_rule_type = models.CharField(max_length=255, null=True, blank=True)
     recurrence_rule_interval = models.IntegerField(null=True, blank=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_events")
+    notifications = models.JSONField(null=True, blank=True)
 
 
 class Notification(models.Model):

@@ -11,7 +11,7 @@ import json
 @login_required
 def create(request):
     """
-    Handles the HTTP request for creating an event.
+    Handles the HTTP request for creating an event, including optional notification intervals.
 
     Args:
         request (HttpRequest): The HTTP request object.
@@ -24,6 +24,7 @@ def create(request):
 
     try:
         data = json.loads(request.body)
+
         result = create_or_update_event(
             name=data.get("name"),
             description=data.get("description", ""),
@@ -32,7 +33,8 @@ def create(request):
             time_end=data.get("time_end"),
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
-            creator=request.user
+            creator=request.user,
+            notifications=data.get("notifications", [])
         )
         if 'error' in result:
             return JsonResponse({'error': result['error']}, status=result['status'])
@@ -111,6 +113,8 @@ def update(request):
 
     try:
         data = json.loads(request.body)
+        notifications = data.get("notifications", [])  # <-- add this line
+
         result = create_or_update_event(
             event_id=data.get("event_id"),
             name=data.get("name"),
@@ -120,7 +124,8 @@ def update(request):
             time_end=data.get("time_end"),
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
-            user_id=request.user.id
+            user_id=request.user.id,
+            notifications=notifications   # <-- and this line
         )
         if 'error' in result:
             return JsonResponse({'error': result['error']}, status=result['status'])

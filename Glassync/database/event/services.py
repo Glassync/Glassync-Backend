@@ -4,10 +4,21 @@ from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 
 
-def create_or_update_event(event_id=None, name=None, description=None, date=None, time_start=None, time_end=None,
-                           recurrence_rule_type=None, recurrence_rule_interval=None, creator=None, user_id=None):
+def create_or_update_event(
+    event_id=None,
+    name=None,
+    description=None,
+    date=None,
+    time_start=None,
+    time_end=None,
+    recurrence_rule_type=None,
+    recurrence_rule_interval=None,
+    creator=None,
+    user_id=None,
+    notifications=None,
+):
     """
-    Handles creating or updating an event in the database.
+    Handles creating or updating an event in the database, including notification intervals.
 
     Args:
         event_id (int, optional): The ID of the event to update (if updating).
@@ -20,6 +31,7 @@ def create_or_update_event(event_id=None, name=None, description=None, date=None
         recurrence_rule_interval (int, optional): The recurrence rule interval.
         creator (User, optional): The user creating the event (required for creation).
         user_id (int, optional): The ID of the user attempting to create or update the event.
+        notifications (list of dict, optional): Notification intervals, each dict with 'type' and 'count'.
 
     Returns:
         dict: A dictionary with either the event object or error details.
@@ -34,7 +46,6 @@ def create_or_update_event(event_id=None, name=None, description=None, date=None
         # Check if the user is the creator of the event
         if event.creator_id != user_id:
             return {'error': 'Permission denied. Only the creator can edit this event.', 'status': 403}
-
     else:
         # Create a new event
         if not creator:
@@ -70,6 +81,25 @@ def create_or_update_event(event_id=None, name=None, description=None, date=None
         except ValueError:
             return {'error': 'recurrence_rule_interval must be a valid integer', 'status': 400}
 
+    # Validate notifications if provided
+    if notifications is None:
+        notifications = []
+
+    if notifications is not None:
+        if not isinstance(notifications, list):
+            return {'error': 'notifications must be a list', 'status': 400}
+        for notif in notifications:
+            if not isinstance(notif, dict) or 'type' not in notif or 'count' not in notif:
+                return {'error': 'Each notification must be a dict with "type" and "count"', 'status': 400}
+            if notif['type'] not in ['minutes', 'hours', 'days']:
+                return {'error': 'notification type must be "minutes", "hours", or "days"', 'status': 400}
+            try:
+                notif['count'] = int(notif['count'])
+                if notif['count'] <= 0:
+                    return {'error': 'notification count must be a positive integer', 'status': 400}
+            except Exception:
+                return {'error': 'notification count must be an integer', 'status': 400}
+
     # Convert date field
     if date:
         try:
@@ -90,9 +120,18 @@ def create_or_update_event(event_id=None, name=None, description=None, date=None
         event.recurrence_rule_type = recurrence_rule_type
     if recurrence_rule_interval is not None:
         event.recurrence_rule_interval = recurrence_rule_interval
+    if notifications is not None:
+        event.notifications = notifications
 
     # Save the event (create or update)
     event.save()
+
+    # Notifications set up
+    for notif in notifications:
+        notif_type = notif.get("type")
+        notif_count = notif.get("count")
+        # TODO: notif logic
+        print(f"Notification: {notif_count} {notif_type} before the event (dummy handling)")
 
     # Return the event
     return {'event': event, 'status': 201 if not event_id else 200}
@@ -159,6 +198,7 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
                         "recurrence_rule_type": event.recurrence_rule_type,
                         "recurrence_rule_interval": event.recurrence_rule_interval,
                         "creator_id": event.creator_id,
+                        "notifications": event.notifications,
                     }
                 else:
                     result[event.id] = {
@@ -224,6 +264,7 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
                     "recurrence_rule_type": event.recurrence_rule_type,
                     "recurrence_rule_interval": event.recurrence_rule_interval,
                     "creator_id": event.creator_id,
+                    "notifications": event.notifications,
                 }
             else:
                 result[event.id] = {
