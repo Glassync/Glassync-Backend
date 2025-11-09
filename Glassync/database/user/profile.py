@@ -37,19 +37,9 @@ def get_profile(own_uid: int, user_id: int):
         return {"error": f"An unexpected error occurred: {str(e)}"}, 500
 
 
-def update_profile(user_id: int, first_name=None, last_name=None, nickname=None, avatar_path=None):
+def update_profile(user_id: int, first_name=None, last_name=None, nickname=None, avatar_path=None, password=None, current_password=None):
     """
-    Update the profile data of a user.
-
-    Args:
-        user_id (int): The ID of the user to update.
-        first_name (str, optional): Updated first name of the user.
-        last_name (str, optional): Updated last name of the user.
-        nickname (str, optional): Updated nickname of the user.
-        avatar_path (str, optional): Updated avatar path of the user.
-
-    Returns:
-        tuple: A tuple containing a success message or an error message and the HTTP status code.
+    Update the profile data of a user, possibly including password change.
     """
     try:
         user = User.objects.get(id=user_id)
@@ -63,7 +53,13 @@ def update_profile(user_id: int, first_name=None, last_name=None, nickname=None,
         if avatar_path is not None:
             user.avatar_path = avatar_path
 
-        user.save()  # Save the changes to the database
+        if password is not None:
+            if current_password is None or not user.check_password(current_password):
+                user.save()
+                return {"error": "Current password is incorrect"}, 403
+            user.set_password(password)
+
+        user.save()
         return {"message": "Profile updated successfully"}, 200
     except ObjectDoesNotExist:
         return {"error": "User not found"}, 404

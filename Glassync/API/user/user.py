@@ -73,7 +73,7 @@ def get(request):
 @login_required
 def update(request):
     """
-    Update the profile of the logged-in user.
+    Update the profile of the logged-in user, optionally including password change.
 
     Args:
         request: The HTTP request object containing the fields to update.
@@ -81,7 +81,6 @@ def update(request):
     Returns:
         JsonResponse: A success message or an error message.
     """
-    # Enforce the POST method
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request method, only POST is allowed"}, status=405)
 
@@ -94,6 +93,8 @@ def update(request):
         last_name = body.get("last_name")
         nickname = body.get("nickname")
         avatar_path = body.get("avatar_path")
+        password = body.get("password")
+        current_password = body.get("current_password")
 
         # Update the user's profile
         response, status_code = update_profile(
@@ -102,6 +103,8 @@ def update(request):
             last_name=last_name,
             nickname=nickname,
             avatar_path=avatar_path,
+            password=password,
+            current_password=current_password,
         )
 
         return JsonResponse(response, status=status_code)
