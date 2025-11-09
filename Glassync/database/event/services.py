@@ -2,6 +2,7 @@ from Glassync.models import Event, EventMember
 from Glassync.database.friendship.services import are_friends
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
+from Glassync.API.errors import ERRORS
 
 
 def create_or_update_event(
@@ -19,42 +20,31 @@ def create_or_update_event(
 ):
     """
     Handles creating or updating an event in the database, including notification intervals.
-
-    Args:
-        event_id (int, optional): The ID of the event to update (if updating).
-        name (str, optional): The name of the event.
-        description (str, optional): The description of the event.
-        date (str, optional): The event's date (in 'YYYY-MM-DD' format).
-        time_start (str, optional): The start time (in 'HH:MM:SS' format, or None).
-        time_end (str, optional): The end time (in 'HH:MM:SS' format, or None).
-        recurrence_rule_type (str, optional): The recurrence rule type (daily/weekly/monthly).
-        recurrence_rule_interval (int, optional): The recurrence rule interval.
-        creator (User, optional): The user creating the event (required for creation).
-        user_id (int, optional): The ID of the user attempting to create or update the event.
-        notifications (list of dict, optional): Notification intervals, each dict with 'type' and 'count'.
-
-    Returns:
-        dict: A dictionary with either the event object or error details.
+    Returns: dict with either {'event': event_obj, 'status': int} or {'errors': [error_dicts], 'status': int}
     """
+    errors = []
+
     if event_id:
         # Update existing event
         try:
             event = Event.objects.get(id=event_id)
         except ObjectDoesNotExist:
-            return {'error': f'Event with ID {event_id} does not exist', 'status': 404}
+            return {'errors': [ERRORS["event"]["event_not_found"]], 'status': 404}
 
-        # Check if the user is the creator of the event
         if event.creator_id != user_id:
-            return {'error': 'Permission denied. Only the creator can edit this event.', 'status': 403}
+            return {'errors': [ERRORS["event"]["permission_denied"]], 'status': 403}
     else:
         # Create a new event
         if not creator:
-            return {'error': 'Creator is required for creating a new event', 'status': 400}
-        event = Event(creator=creator)
+            errors.append(ERRORS["fields"]["missing_creator"])
+        event = Event(creator=creator) if creator else None
 
     # Validate required fields for creation
-    if not event_id and not all([name, date]):
-        return {'error': 'Missing required fields: name or date', 'status': 400}
+    if not event_id:
+        if not name:
+            errors.append(ERRORS["fields"]["missing_name"])
+        if not date:
+            errors.append(ERRORS["fields"]["missing_date"])
 
     # Validate time_start and time_end
     time_start_obj, time_end_obj = None, None
@@ -63,23 +53,28 @@ def create_or_update_event(
             time_start_obj = datetime.strptime(time_start, '%H:%M:%S').time()
             time_end_obj = datetime.strptime(time_end, '%H:%M:%S').time()
             if time_start_obj >= time_end_obj:
-                return {'error': 'time_start must be earlier than time_end', 'status': 400}
+                errors.append(ERRORS["fields"]["invalid_time_order"])
         except ValueError:
-            return {'error': 'Invalid time format. Use HH:MM:SS', 'status': 400}
+            errors.append(ERRORS["fields"]["invalid_time_format"])
+    elif time_start or time_end:
+        if not time_start:
+            errors.append(ERRORS["fields"]["missing_time_start"])
+        if not time_end:
+            errors.append(ERRORS["fields"]["missing_time_end"])
 
     # Validate recurrence_rule_type
     valid_recurrence_rule_types = ["daily", "weekly", "monthly", "yearly"]
     if recurrence_rule_type and recurrence_rule_type not in valid_recurrence_rule_types:
-        return {'error': f'Invalid recurrence_rule_type. Must be one of {valid_recurrence_rule_types}', 'status': 400}
+        errors.append(ERRORS["fields"]["invalid_recurrence_type"])
 
     # Validate recurrence_rule_interval
     if recurrence_rule_interval is not None:
         try:
             recurrence_rule_interval = int(recurrence_rule_interval)
             if recurrence_rule_interval <= 0 or recurrence_rule_interval > 1000:
-                return {'error': 'recurrence_rule_interval must be a positive integer and less than or equal to 1000', 'status': 400}
+                errors.append(ERRORS["fields"]["invalid_recurrence_interval"])
         except ValueError:
-            return {'error': 'recurrence_rule_interval must be a valid integer', 'status': 400}
+            errors.append(ERRORS["fields"]["invalid_recurrence_integer"])
 
     # Validate notifications if provided
     if notifications is None:
@@ -87,25 +82,30 @@ def create_or_update_event(
 
     if notifications is not None:
         if not isinstance(notifications, list):
-            return {'error': 'notifications must be a list', 'status': 400}
-        for notif in notifications:
-            if not isinstance(notif, dict) or 'type' not in notif or 'count' not in notif:
-                return {'error': 'Each notification must be a dict with "type" and "count"', 'status': 400}
-            if notif['type'] not in ['minutes', 'hours', 'days']:
-                return {'error': 'notification type must be "minutes", "hours", or "days"', 'status': 400}
-            try:
-                notif['count'] = int(notif['count'])
-                if notif['count'] <= 0:
-                    return {'error': 'notification count must be a positive integer', 'status': 400}
-            except Exception:
-                return {'error': 'notification count must be an integer', 'status': 400}
+            errors.append(ERRORS["fields"]["invalid_notifications_type"])
+        else:
+            for notif in notifications:
+                if not isinstance(notif, dict) or 'type' not in notif or 'count' not in notif:
+                    errors.append(ERRORS["fields"]["invalid_notification_entry"])
+                    continue
+                if notif['type'] not in ['minutes', 'hours', 'days']:
+                    errors.append(ERRORS["fields"]["invalid_notification_type"])
+                try:
+                    notif['count'] = int(notif['count'])
+                    if notif['count'] <= 0:
+                        errors.append(ERRORS["fields"]["invalid_notification_count"])
+                except Exception:
+                    errors.append(ERRORS["fields"]["invalid_notification_integer"])
 
     # Convert date field
     if date:
         try:
             event.date = datetime.strptime(date, '%Y-%m-%d').date()
         except ValueError:
-            return {'error': 'Invalid date format. Use YYYY-MM-DD', 'status': 400}
+            errors.append(ERRORS["fields"]["invalid_date_format"])
+
+    if errors:
+        return {'errors': errors, 'status': 400}
 
     # Update event fields
     if name is not None:
@@ -123,69 +123,34 @@ def create_or_update_event(
     if notifications is not None:
         event.notifications = notifications
 
-    # Save the event (create or update)
     event.save()
 
     # Notifications set up
     for notif in notifications:
         notif_type = notif.get("type")
         notif_count = notif.get("count")
-        # TODO: notif logic
+        # TODO: notif logic (dummy handling)
         print(f"Notification: {notif_count} {notif_type} before the event (dummy handling)")
 
-    # Return the event
     return {'event': event, 'status': 201 if not event_id else 200}
 
 
 def can_view_event(user_id, event_id):
-    """
-    Determines if a user can view an event.
-
-    A user can view an event if:
-    - They are the creator of the event.
-    - They are a member of the event (a row exists in EventMember with id_event and id_user).
-
-    Args:
-        user_id (int): The ID of the user.
-        event_id (int): The ID of the event.
-
-    Returns:
-        bool: True if the user can view the event, False otherwise.
-    """
     try:
-        # Check if the user is the creator of the event
         if Event.objects.filter(id=event_id, creator_id=user_id).exists():
             return True
-
-        # Check if the user is a member of the event
         if EventMember.objects.filter(id_event_id=event_id, id_user_id=user_id).exists():
             return True
-
     except ObjectDoesNotExist:
         pass
-
-    # If neither condition is met, the user cannot view the event
     return False
 
 
 def get_event_by_uids(user_uid, event_uids, detailed=False):
-    """
-    Fetch events by a list of event UIDs, ensuring the user has access to view them.
-
-    Args:
-        user_uid (int): The ID of the user requesting the events.
-        event_uids (list[int]): List of event UIDs to fetch.
-        detailed (bool): Whether to include detailed information.
-
-    Returns:
-        dict: Dictionary of event data or detailed event data for accessible events, keyed by event ID.
-    """
     try:
         events = Event.objects.filter(id__in=event_uids)
         result = {}
-
         for event in events:
-            # Check if the user can view the event
             if can_view_event(user_uid, event.id):
                 if detailed:
                     result[event.id] = {
@@ -206,39 +171,21 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
                         "name": event.name,
                         "date": event.date,
                     }
-
         return result
-
     except ObjectDoesNotExist:
+        return {}
+    except Exception as e:
         return {}
 
 
 def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed=False):
-    """
-    Fetch events for a specific user within a given date range, ensuring access is allowed.
-
-    Args:
-        own_uid (int): Your user ID.
-        user_uid (int): The UID of the user whose events to fetch.
-        start_date (date): Start of the search range.
-        end_date (date): End of the search range.
-        detailed (bool): Whether to include detailed information.
-
-    Returns:
-        dict: Dictionary of event data or detailed event data, keyed by event ID.
-    """
-    # Check if the user has access to view events
     if own_uid != user_uid and not are_friends(own_uid, user_uid):
-        return {}  # Access denied
-
+        return {}
     try:
-        # Fetch events where user_uid is the creator
         creator_events = Event.objects.filter(
             creator_id=user_uid,
             date__range=[start_date, end_date],
         )
-
-        # Fetch events where user_uid is a member and has accepted the invitation
         member_events = Event.objects.filter(
             id__in=EventMember.objects.filter(
                 id_user_id=user_uid,
@@ -246,11 +193,7 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
             ).values_list('id_event_id', flat=True),
             date__range=[start_date, end_date],
         )
-
-        # Combine the two querysets and remove duplicates
         all_events = (creator_events | member_events).distinct()
-
-        # Format the response
         result = {}
         for event in all_events:
             if detailed:
@@ -272,44 +215,18 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
                     "name": event.name,
                     "date": event.date,
                 }
-
         return result
-
     except Exception as e:
-        # Handle any unexpected errors
         return {}
 
 
 def delete_event(event_id, user_id):
-    """
-    Deletes an event and all associated EventMember rows, ensuring only the creator can delete it.
-
-    Args:
-        event_id (int): The ID of the event to delete.
-        user_id (int): The ID of the user attempting to delete the event.
-
-    Returns:
-        dict: A dictionary with the result of the operation.
-              Example:
-              - Success: {'message': 'Event deleted successfully', 'status': 200}
-              - Error: {'error': 'Event not found', 'status': 404}
-              - Permission Denied: {'error': 'Permission denied. Only the creator can delete this event.', 'status': 403}
-    """
     try:
-        # Fetch the event
         event = Event.objects.get(id=event_id)
-
-        # Check if the user is the creator of the event
         if event.creator_id != user_id:
-            return {'error': 'Permission denied. Only the creator can delete this event.', 'status': 403}
-
-        # Delete all associated EventMember rows
+            return {'errors': [ERRORS["event"]["permission_denied"]], 'status': 403}
         EventMember.objects.filter(id_event_id=event_id).delete()
-
-        # Delete the event
         event.delete()
-
         return {'message': 'Event and associated members deleted successfully', 'status': 200}
-
     except ObjectDoesNotExist:
-        return {'error': 'Event not found', 'status': 404}
+        return {'errors': [ERRORS["event"]["event_not_found"]], 'status': 404}

@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
+from Glassync.API.errors import ERRORS
 from Glassync.database.event.services import create_or_update_event, get_event_by_uids, get_event_by_user_and_date, delete_event
 from Glassync.database.event.actions import accept_group_event_invite, decline_group_event_invite, quit_group_event, invite_to_group_event
 from datetime import datetime
@@ -10,20 +11,14 @@ import json
 @csrf_protect
 @login_required
 def create(request):
-    """
-    Handles the HTTP request for creating an event, including optional notification intervals.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        JsonResponse: A JSON response with the result of the operation.
-    """
     if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
 
     try:
         data = json.loads(request.body)
+        errors = collect_event_field_errors(data, require_name=True, require_date=True)
+        if errors:
+            return JsonResponse({'errors': errors, "status": 400}, status=400)
 
         result = create_or_update_event(
             name=data.get("name"),
@@ -36,34 +31,26 @@ def create(request):
             creator=request.user,
             notifications=data.get("notifications", [])
         )
-        if 'error' in result:
-            return JsonResponse({'error': result['error']}, status=result['status'])
+        if 'errors' in result:
+            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
         return JsonResponse({
             'message': 'Event created successfully',
-            'event_id': result['event'].id
+            'event_id': result['event'].id,
+            'status': result['status']
         }, status=result['status'])
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
 def get(request):
-    """
-    Handles the HTTP request for retrieving events.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        JsonResponse: A JSON response with the list of events or error details.
-    """
     if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
 
     try:
         data = json.loads(request.body)
@@ -74,7 +61,6 @@ def get(request):
                 detailed=data.get("detailed", False)
             )
         elif "user_uid" in data and "start_date" in data and "end_date" in data:
-            # Adjusted to handle start_date and end_date
             result = get_event_by_user_and_date(
                 own_uid=request.user.id,
                 user_uid=data["user_uid"],
@@ -83,37 +69,36 @@ def get(request):
                 detailed=data.get("detailed", False)
             )
         else:
-            return JsonResponse({'error': 'Invalid input. Provide either "event_uids" or "user_uid" with date range.'},
-                                status=400)
+            errors = []
+            if not data.get("event_uids"):
+                errors.append(ERRORS["fields"]["missing_event_id"])
+            if not data.get("user_uid") or not data.get("start_date") or not data.get("end_date"):
+                errors.append(ERRORS["fields"]["missing_date"])
+            return JsonResponse({'errors': errors, "status": 400}, status=400)
 
-        return JsonResponse({'events': result}, status=200)
+        return JsonResponse({'events': result, "status": 200}, status=200)
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except ValueError as e:
-        return JsonResponse({'error': f'Invalid date format: {str(e)}. Use ISO 8601 format.'}, status=400)
+        return JsonResponse({'errors': [dict(ERRORS["fields"]["invalid_date_format"], details=str(e))], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
 def update(request):
-    """
-    Handles the HTTP request for updating an event.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        JsonResponse: A JSON response with the result of the operation.
-    """
     if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
 
     try:
         data = json.loads(request.body)
-        notifications = data.get("notifications", [])  # <-- add this line
+        errors = []
+        if not data.get("event_id"):
+            errors.append(ERRORS["fields"]["missing_event_id"])
+        if errors:
+            return JsonResponse({'errors': errors, "status": 400}, status=400)
 
         result = create_or_update_event(
             event_id=data.get("event_id"),
@@ -125,68 +110,56 @@ def update(request):
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
             user_id=request.user.id,
-            notifications=notifications   # <-- and this line
+            notifications=data.get("notifications", [])
         )
-        if 'error' in result:
-            return JsonResponse({'error': result['error']}, status=result['status'])
+        if 'errors' in result:
+            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
         return JsonResponse({
             'message': 'Event updated successfully',
-            'event_id': result['event'].id
+            'event_id': result['event'].id,
+            'status': result['status']
         }, status=result['status'])
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
 def delete(request):
-    """
-    Handles the HTTP request for deleting an event.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        JsonResponse: A JSON response with the result of the operation.
-    """
     if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
 
     try:
         data = json.loads(request.body)
+        errors = []
+        if not data.get("event_id"):
+            errors.append(ERRORS["fields"]["missing_event_id"])
+        if errors:
+            return JsonResponse({'errors': errors, "status": 400}, status=400)
         result = delete_event(
             event_id=data.get("event_id"),
             user_id=request.user.id
         )
-        if 'error' in result:
-            return JsonResponse({'error': result['error']}, status=result['status'])
+        if 'errors' in result:
+            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
-        return JsonResponse({'message': result['message']}, status=result['status'])
+        return JsonResponse({'message': result['message'], "status": result['status']}, status=result['status'])
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
 def action(request):
-    """
-    Handle group event-related actions dynamically.
-
-    Args:
-        request: The HTTP request containing `event_id`, `action`, and possibly additional data.
-
-    Returns:
-        JsonResponse: A JSON response with the result of the action.
-    """
     if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method, only POST is allowed'}, status=405)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
 
     try:
         body = json.loads(request.body)
@@ -194,8 +167,15 @@ def action(request):
         action_type = body.get('action')
         extra_data = body.get('extra_data', {})
 
-        if not event_id or not action_type:
-            return JsonResponse({'error': 'Missing required fields: event_id or action'}, status=400)
+        errors = []
+        if not event_id:
+            errors.append(ERRORS["fields"]["missing_event_id"])
+        if not action_type:
+            errors.append(ERRORS["fields"]["missing_action"])
+        if action_type == 'invite' and not extra_data.get('user_id'):
+            errors.append(ERRORS["fields"]["missing_user_id"])
+        if errors:
+            return JsonResponse({'errors': errors, "status": 400}, status=400)
 
         action_map = {
             'invite': invite_to_group_event,
@@ -205,12 +185,10 @@ def action(request):
         }
 
         if action_type not in action_map:
-            return JsonResponse({'error': f'Invalid action: {action_type}'}, status=400)
+            return JsonResponse({'errors': [ERRORS["fields"]["invalid_action"]], "status": 400}, status=400)
 
         if action_type == 'invite':
             invitee_id = extra_data.get('user_id')
-            if not invitee_id:
-                return JsonResponse({'error': 'Missing user_id in extra_data for invite action'}, status=400)
             result = action_map[action_type](
                 user_owner=request.user.id,
                 user_id=invitee_id,
@@ -222,9 +200,21 @@ def action(request):
                 event_id=event_id
             )
 
+        if 'errors' in result:
+            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
+
         return JsonResponse(result, status=result.get('status', 500))
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
+
+
+def collect_event_field_errors(data, require_name=False, require_date=False):
+    errors = []
+    if require_name and not data.get("name"):
+        errors.append(ERRORS["fields"]["missing_name"])
+    if require_date and not data.get("date"):
+        errors.append(ERRORS["fields"]["missing_date"])
+    return errors
