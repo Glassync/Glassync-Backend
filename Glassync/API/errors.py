@@ -201,5 +201,27 @@ ERRORS = {
             "message_en": "User is not part of the event",
             "message_ru": "Пользователь не является участником события"
         }
+    },
+    "friendship": {
+        "no_request_found": {
+            "code": "no_request_found",
+            "message_en": "No friendship request found",
+            "message_ru": "Запрос на дружбу не найден"
+        },
+        "cannot_friend_self": {
+            "code": "cannot_friend_self",
+            "message_en": "Cannot send a friend request to yourself",
+            "message_ru": "Нельзя отправить запрос на дружбу самому себе"
+        },
+        "could_not_create": {
+            "code": "could_not_create",
+            "message_en": "Friendship request could not be created",
+            "message_ru": "Запрос на дружбу не удалось создать"
+        },
+        "no_friendship_found": {
+            "code": "no_friendship_found",
+            "message_en": "No friendship found to delete",
+            "message_ru": "Дружба для удаления не найдена"
+        }
     }
 }
