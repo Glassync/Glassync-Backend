@@ -61,7 +61,7 @@ def find_users(
                               Options: "full_name", "nickname", "email", "all".
 
     Returns:
-        tuple: A tuple containing a list of matching users (as dictionaries) and the HTTP status code.
+        tuple: ({"users": {id: user_dict, ...}}, status_code)
     """
     try:
         # Validate request_filter
@@ -77,7 +77,6 @@ def find_users(
         # Build the search query based on request_filter
         query = Q()
         if request_filter == "full_name":
-            # Split the request string to handle first name and last name
             search_terms = request_string.split()
             if len(search_terms) == 2:
                 query |= Q(first_name__icontains=search_terms[0], last_name__icontains=search_terms[1])
@@ -97,12 +96,11 @@ def find_users(
         matching_users = User.objects.filter(query).exclude(id=searcher_id)
 
         # Filter based on relationship status
-        filtered_users = []
+        users_dict = {}
         for user in matching_users:
             status = check_status(searcher_id, user.id)
-
             if relationship_filter == "all" or status == relationship_filter:
-                filtered_users.append({
+                users_dict[str(user.id)] = {
                     "id": user.id,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
@@ -110,13 +108,10 @@ def find_users(
                     "nickname": user.nickname,
                     "avatar_path": user.avatar_path,
                     "relationship_status": status
-                })
-
-        # Limit results to 50 users
-        filtered_users = filtered_users[:50]
+                }
 
         # Return the formatted results
-        return filtered_users, 200
+        return {"users": users_dict}, 200
 
     except ObjectDoesNotExist:
         return {"error": "No users found matching the search criteria"}, 404

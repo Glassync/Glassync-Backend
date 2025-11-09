@@ -22,6 +22,7 @@ def get_profile(own_uid: int, user_id: int):
         # Fetch the user's profile
         user = User.objects.get(id=user_id)
         profile_data = {
+            "id": user_id,
             "first_name": user.first_name,
             "last_name": user.last_name,
             "email": user.email,
