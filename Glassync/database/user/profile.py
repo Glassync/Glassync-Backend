@@ -1,4 +1,4 @@
-from Glassync.database.friendship.services import are_friends
+from Glassync.database.friendship.services import check_status
 from Glassync.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from Glassync.API.errors import ERRORS
@@ -6,7 +6,7 @@ from Glassync.API.errors import ERRORS
 
 def get_profile(own_uid: int, user_id: int):
     """
-    Retrieve the profile data of a user.
+    Retrieve the profile data of a user, including relationship_status.
 
     Args:
         own_uid (int): The ID of the requesting user.
@@ -29,6 +29,15 @@ def get_profile(own_uid: int, user_id: int):
             "nickname": user.nickname,
             "avatar_path": user.avatar_path,
         }
+        if own_uid == user_id:
+            profile_data["relationship_status"] = "self"
+        else:
+            try:
+                own_user = User.objects.get(id=own_uid)
+                status = check_status(own_user, user)
+            except User.DoesNotExist:
+                status = "unknown"
+            profile_data["relationship_status"] = status
         return profile_data, 200
 
     except ObjectDoesNotExist:
