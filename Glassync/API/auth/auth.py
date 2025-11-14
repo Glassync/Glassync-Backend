@@ -1,22 +1,33 @@
 import json
 import re
-from django.http import JsonResponse
+from typing import List
+
+from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_POST
 from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
 from django.contrib.auth import get_user_model
+
 from Glassync.API.errors import ERRORS
 
 User = get_user_model()
 
 
+def json_response(data, status=200):
+    return JsonResponse(
+        data,
+        status=status,
+        content_type="application/json"
+    )
+
+
 @csrf_protect
-def signup(request):
+@require_POST
+def signup(request: HttpRequest):
     """
     Register a new user.
     Expects: email, password, first_name, last_name (optionally: nickname, avatar_path)
     """
-    if request.method != "POST":
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_request_method"]]}, status=405)
     try:
         data = json.loads(request.body)
         email = data.get("email")
@@ -31,7 +42,7 @@ def signup(request):
             errors.append(ERRORS["auth"]["user_exists"])
 
         if errors:
-            return JsonResponse({"errors": errors}, status=400)
+            return json_response({"errors": errors}, status=400)
 
         user = User.objects.create_user(
             email=email,
@@ -41,23 +52,22 @@ def signup(request):
             nickname=nickname,
             avatar_path=avatar_path
         )
-        return JsonResponse({"message": "User created successfully"}, status=201)
+        return json_response({"message": "User created successfully"}, status=201)
     except json.JSONDecodeError:
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
+        return json_response({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
     except Exception as e:
-        return JsonResponse({
+        return json_response({
             "errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]
         }, status=500)
 
 
 @csrf_protect
-def login(request):
+@require_POST
+def login(request: HttpRequest):
     """
     Log in a user.
     Expects: email, password
     """
-    if request.method != "POST":
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_request_method"]]}, status=405)
     try:
         data = json.loads(request.body)
         email = data.get("email")
@@ -65,47 +75,51 @@ def login(request):
 
         errors = collect_field_errors_login(email, password)
         if errors:
-            return JsonResponse({"errors": errors}, status=400)
+            return json_response({"errors": errors}, status=400)
 
         user = authenticate(request, email=email, password=password)
         if user is not None:
             dj_login(request, user)
-            return JsonResponse({"message": "Logged in successfully"})
+            return json_response({"message": "Logged in successfully"})
         else:
-            return JsonResponse({"errors": [ERRORS["auth"]["invalid_credentials"]]}, status=401)
+            return json_response({"errors": [ERRORS["auth"]["invalid_credentials"]]}, status=401)
     except json.JSONDecodeError:
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
+        return json_response({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
     except Exception as e:
-        return JsonResponse({
+        return json_response({
             "errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]
         }, status=500)
 
 
 @csrf_protect
-def logout(request):
+@require_POST
+def logout(request: HttpRequest):
     """
     Log out the current user.
     """
-    if request.method != "POST":
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_request_method"]]}, status=405)
     try:
         if request.user.is_authenticated:
             dj_logout(request)
-            return JsonResponse({"message": "Logged out successfully"})
+            return json_response({"message": "Logged out successfully"})
         else:
-            return JsonResponse({"errors": [ERRORS["auth"]["not_logged_in"]]}, status=401)
+            return json_response({"errors": [ERRORS["auth"]["not_logged_in"]]}, status=401)
     except Exception as e:
-        return JsonResponse({
+        return json_response({
             "errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]
         }, status=500)
 
 
-def is_valid_name(name):
-    # Allows letters, spaces, hyphens, apostrophes (adjust as needed)
+def is_valid_name(name: str) -> bool:
+    """Allows letters, spaces, hyphens, apostrophes (adjust as needed)"""
     return bool(re.fullmatch(r"[A-Za-zÀ-ÿА-ЯЁа-яё '-]{1,50}", name.strip()))
 
 
-def collect_field_errors_signup(email, password, first_name, last_name):
+def collect_field_errors_signup(
+    email: str,
+    password: str,
+    first_name: str,
+    last_name: str
+) -> List[dict]:
     errors = []
     if not email:
         errors.append(ERRORS["fields"]["missing_email"])
@@ -122,7 +136,10 @@ def collect_field_errors_signup(email, password, first_name, last_name):
     return errors
 
 
-def collect_field_errors_login(email, password):
+def collect_field_errors_login(
+    email: str,
+    password: str
+) -> List[dict]:
     errors = []
     if not email:
         errors.append(ERRORS["fields"]["missing_email"])
