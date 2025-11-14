@@ -1,26 +1,39 @@
-from django.http import JsonResponse
+import json
+
+from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from Glassync.API.errors import ERRORS
-from Glassync.database.user.profile import get_profile, update_profile, delete_profile
-from Glassync.database.user.search import find_users
-from Glassync.database.friendship.services import accept_friendship, decline_friendship, request_friendship, delete_friendship
-import json
 from django.contrib.auth import get_user_model
+
+from Glassync.API.errors import ERRORS
+from Glassync.database.user.profile import (
+    get_profile,
+    update_profile,
+    delete_profile,
+)
+from Glassync.database.user.search import find_users
+from Glassync.database.friendship.services import (
+    accept_friendship,
+    decline_friendship,
+    request_friendship,
+    delete_friendship,
+)
 
 User = get_user_model()
 
 
+def json_response(data: dict, status: int = 200):
+    return JsonResponse(data, status=status, content_type="application/json")
+
+
 @csrf_protect
 @login_required
-def get(request):
+@require_POST
+def get(request: HttpRequest):
     """
     Retrieve the profiles of one or more users (by user_ids), or search for users based on filters via POST request.
     """
-    if request.method != "POST":
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_request_method"]]}, status=405)
-
     try:
         body = json.loads(request.body)
         own_uid = request.user.id
@@ -29,7 +42,7 @@ def get(request):
 
         if user_ids is not None:
             if not isinstance(user_ids, list) or not user_ids:
-                return JsonResponse({"errors": [ERRORS["user"]["invalid_user_ids"]]}, status=400)
+                return json_response({"errors": [ERRORS["user"]["invalid_user_ids"]]}, status=400)
 
             users = {}
             errors = {}
@@ -38,18 +51,21 @@ def get(request):
                 if status_code == 200:
                     users[str(uid)] = profile
                 else:
-                    # errors dict: {uid: [<error_dicts>]}
-                    errors[str(uid)] = profile.get("errors", [{"code": "unknown_error", "message_en": "Unknown error", "message_ru": "Неизвестная ошибка"}])
+                    errors[str(uid)] = profile.get("errors", [{
+                        "code": "unknown_error",
+                        "message_en": "Unknown error",
+                        "message_ru": "Неизвестная ошибка"
+                    }])
             if users and errors:
-                return JsonResponse({"users": users, "errors": errors}, status=206)
+                return json_response({"users": users, "errors": errors}, status=206)
             elif users:
-                return JsonResponse({"users": users}, status=200)
+                return json_response({"users": users}, status=200)
             else:
-                return JsonResponse({"errors": errors}, status=404)
+                return json_response({"errors": errors}, status=404)
 
-        # If no user_ids, handle search filters as before
+        # If no user_ids, handle search filters
         if "search_string" not in body:
-            return JsonResponse({"errors": [ERRORS["user"]["missing_search_string"]]}, status=400)
+            return json_response({"errors": [ERRORS["user"]["missing_search_string"]]}, status=400)
         request_string = body["search_string"]
         request_filter = body.get("request_filter", "all")
         relationship_filter = body.get("relationship_filter", "all")
@@ -60,25 +76,23 @@ def get(request):
             relationship_filter=relationship_filter,
             request_filter=request_filter
         )
-        return JsonResponse(result, status=status_code)
+        return json_response(result, status=status_code)
 
     except json.JSONDecodeError:
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
+        return json_response({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
     except ValueError:
-        return JsonResponse({"errors": [ERRORS["user"]["invalid_data_format"]]}, status=400)
+        return json_response({"errors": [ERRORS["user"]["invalid_data_format"]]}, status=400)
     except Exception as e:
-        return JsonResponse({"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, status=500)
+        return json_response({"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, status=500)
 
 
 @csrf_protect
 @login_required
-def update(request):
+@require_POST
+def update(request: HttpRequest):
     """
     Update the profile of the logged-in user, optionally including password change.
     """
-    if request.method != "POST":
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_request_method"]]}, status=405)
-
     try:
         body = json.loads(request.body)
         user_id = request.user.id
@@ -100,44 +114,44 @@ def update(request):
             current_password=current_password,
         )
 
-        return JsonResponse(response, status=status_code)
+        return json_response(response, status=status_code)
     except json.JSONDecodeError:
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
+        return json_response({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)
     except Exception as e:
-        return JsonResponse({"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, status=500)
-
-
-@csrf_protect
-@login_required
-def delete(request):
-    """
-    Delete the profile of the logged-in user.
-    """
-    if request.method != "POST":
-        return JsonResponse({"errors": [ERRORS["general"]["invalid_request_method"]]}, status=405)
-
-    try:
-        user_id = request.user.id
-        response, status_code = delete_profile(user_id=user_id)
-        return JsonResponse(response, status=status_code)
-    except Exception as e:
-        return JsonResponse({"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, status=500)
+        return json_response({"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, status=500)
 
 
 @csrf_protect
 @login_required
 @require_POST
-def action(request):
+def delete(request: HttpRequest):
+    """
+    Delete the profile of the logged-in user.
+    """
+    try:
+        user_id = request.user.id
+        response, status_code = delete_profile(user_id=user_id)
+        return json_response(response, status=status_code)
+    except Exception as e:
+        return json_response({"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, status=500)
+
+
+@csrf_protect
+@login_required
+@require_POST
+def action(request: HttpRequest):
+    """
+    Perform a friendship-related action (accept, decline, request, or delete friendship).
+    """
     try:
         data = json.loads(request.body)
     except Exception:
-        return JsonResponse(
+        return json_response(
             {"errors": [ERRORS["general"]["invalid_json"]]},
             status=400
         )
 
     errors = []
-
     action_str = data.get("action")
     user_id = data.get("user_id")
 
@@ -157,14 +171,12 @@ def action(request):
         errors.append(ERRORS["fields"]["missing_user_id"])
 
     if errors:
-        return JsonResponse({"errors": errors}, status=400)
-
-    # Get the target user
+        return json_response({"errors": errors}, status=400)
 
     try:
         other_user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        return JsonResponse(
+        return json_response(
             {"errors": [ERRORS["user"]["not_found"]]},
             status=404
         )
@@ -179,22 +191,15 @@ def action(request):
     elif action_str == "delete_friendship":
         result = delete_friendship(user_sender=request.user, user_receiver=other_user)
     else:
-        # Defensive fallback
         errors.append(ERRORS["fields"]["invalid_action"])
-        return JsonResponse({"errors": errors}, status=400)
+        return json_response({"errors": errors}, status=400)
 
-    # If the service returned errors, merge them with any existing errors (should already be a list)
     result_errors = result.get("errors")
     if result_errors:
-        # Ensure it's a list
         if not isinstance(result_errors, list):
             result_errors = [result_errors]
-        # Merge with any existing errors (though there should be none at this stage)
-        errors.extend(result_errors)
-        # Remove duplicate errors by code (optional, for cleaner response)
-        unique = {err["code"]: err for err in errors}
-        return JsonResponse({"errors": list(unique.values())}, status=result.get("status", 400))
+        unique = {err["code"]: err for err in errors + result_errors}
+        return json_response({"errors": list(unique.values())}, status=result.get("status", 400))
 
-    # Success: return the rest of the result (e.g. message, status)
     response = {k: v for k, v in result.items() if k != "status"}
-    return JsonResponse(response, status=result.get("status", 200))
+    return json_response(response, status=result.get("status", 200))
