@@ -223,5 +223,57 @@ ERRORS = {
             "message_en": "No friendship found to delete",
             "message_ru": "Дружба для удаления не найдена"
         }
+    },
+    "user": {
+        "not_found": {
+            "code": "user_not_found",
+            "message_en": "User not found",
+            "message_ru": "Пользователь не найден"
+        },
+        "permission_denied": {
+            "code": "user_permission_denied",
+            "message_en": "Permission denied. You can only view your own profile or your friends' profiles.",
+            "message_ru": "Недостаточно прав. Можно просматривать только свой профиль или профили друзей."
+        },
+        "current_password_incorrect": {
+            "code": "current_password_incorrect",
+            "message_en": "Current password is incorrect",
+            "message_ru": "Текущий пароль неверный"
+        },
+        "no_users_found": {
+            "code": "no_users_found",
+            "message_en": "No users found matching the search criteria",
+            "message_ru": "Пользователи, соответствующие критериям поиска, не найдены"
+        },
+        "invalid_request_filter": {
+            "code": "invalid_request_filter",
+            "message_en": "Invalid request filter. Use one of 'full_name', 'nickname', 'email', or 'all'.",
+            "message_ru": "Некорректный фильтр запроса. Используйте 'full_name', 'nickname', 'email' или 'all'."
+        },
+        "invalid_relationship_filter": {
+            "code": "invalid_relationship_filter",
+            "message_en": "Invalid relationship filter. Use one of 'friends', 'friend_request_sent', 'friend_request_received', 'not_friends', or 'all'.",
+            "message_ru": "Некорректный фильтр отношений. Используйте 'friends', 'friend_request_sent', 'friend_request_received', 'not_friends' или 'all'."
+        },
+        "invalid_search_string_full_name": {
+            "code": "invalid_search_string_full_name",
+            "message_en": "Invalid search string for full name. Provide a first and/or last name.",
+            "message_ru": "Некорректная строка поиска для полного имени. Укажите имя и/или фамилию."
+        },
+        "invalid_user_ids": {
+            "code": "invalid_user_ids",
+            "message_en": "'user_ids' must be a non-empty list of user IDs",
+            "message_ru": "'user_ids' должен быть непустым списком идентификаторов пользователей"
+        },
+        "missing_search_string": {
+            "code": "missing_search_string",
+            "message_en": "Missing 'search_string' in request body",
+            "message_ru": "В теле запроса отсутствует 'search_string'"
+        },
+        "invalid_data_format": {
+            "code": "invalid_data_format",
+            "message_en": "Invalid data format in request",
+            "message_ru": "Неверный формат данных в запросе"
+        }
     }
 }

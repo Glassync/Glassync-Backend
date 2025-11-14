@@ -1,6 +1,7 @@
 from Glassync.database.friendship.services import are_friends
 from Glassync.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from Glassync.API.errors import ERRORS
 
 
 def get_profile(own_uid: int, user_id: int):
@@ -15,11 +16,10 @@ def get_profile(own_uid: int, user_id: int):
         tuple: A tuple containing the profile as a dictionary and the HTTP status code.
     """
     try:
-        # Check if the requested user is the same as the requesting user or if they are friends
+        # Uncomment and use this block if you want to restrict profile viewing to self/friends only
         # if own_uid != user_id and not are_friends(own_uid, user_id):
-        #     return {"error": "Permission denied. You can only view your own profile or your friends' profiles."}, 403
+        #     return {"errors": [ERRORS["user"]["permission_denied"]]}, 403
 
-        # Fetch the user's profile
         user = User.objects.get(id=user_id)
         profile_data = {
             "id": user_id,
@@ -32,9 +32,9 @@ def get_profile(own_uid: int, user_id: int):
         return profile_data, 200
 
     except ObjectDoesNotExist:
-        return {"error": "User not found"}, 404
+        return {"errors": [ERRORS["user"]["not_found"]]}, 404
     except Exception as e:
-        return {"error": f"An unexpected error occurred: {str(e)}"}, 500
+        return {"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, 500
 
 
 def update_profile(user_id: int, first_name=None, last_name=None, nickname=None, avatar_path=None, password=None, current_password=None):
@@ -55,16 +55,15 @@ def update_profile(user_id: int, first_name=None, last_name=None, nickname=None,
 
         if password is not None:
             if current_password is None or not user.check_password(current_password):
-                user.save()
-                return {"error": "Current password is incorrect"}, 403
+                return {"errors": [ERRORS["user"]["current_password_incorrect"]]}, 403
             user.set_password(password)
 
         user.save()
         return {"message": "Profile updated successfully"}, 200
     except ObjectDoesNotExist:
-        return {"error": "User not found"}, 404
+        return {"errors": [ERRORS["user"]["not_found"]]}, 404
     except Exception as e:
-        return {"error": f"An unexpected error occurred: {str(e)}"}, 500
+        return {"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, 500
 
 
 def delete_profile(user_id: int):
@@ -82,6 +81,6 @@ def delete_profile(user_id: int):
         user.delete()  # Delete the user from the database
         return {"message": "Profile deleted successfully"}, 200
     except ObjectDoesNotExist:
-        return {"error": "User not found"}, 404
+        return {"errors": [ERRORS["user"]["not_found"]]}, 404
     except Exception as e:
-        return {"error": f"An unexpected error occurred: {str(e)}"}, 500
+        return {"errors": [dict(ERRORS["general"]["unexpected_error"], details=str(e))]}, 500
