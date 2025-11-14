@@ -1,24 +1,44 @@
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_protect
-from django.contrib.auth.decorators import login_required
-from Glassync.API.errors import ERRORS
-from Glassync.database.event.services import create_or_update_event, get_event_by_uids, get_event_by_user_and_date, delete_event
-from Glassync.database.event.actions import accept_group_event_invite, decline_group_event_invite, quit_group_event, invite_to_group_event
-from datetime import datetime
 import json
+from datetime import datetime
+from typing import Dict, Any, List
+
+from django.http import JsonResponse, HttpRequest
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+from Glassync.API.errors import ERRORS
+from Glassync.database.event.services import (
+    create_or_update_event,
+    get_event_by_uids,
+    get_event_by_user_and_date,
+    delete_event,
+)
+from Glassync.database.event.actions import (
+    accept_group_event_invite,
+    decline_group_event_invite,
+    quit_group_event,
+    invite_to_group_event,
+)
+
+
+def json_response(data, status=200):
+    return JsonResponse(data, status=status, content_type="application/json")
 
 
 @csrf_protect
 @login_required
-def create(request):
-    if request.method != 'POST':
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
-
+@require_POST
+def create(request: HttpRequest):
+    """
+    Create a new event.
+    Expects: name, date, etc.
+    """
     try:
         data = json.loads(request.body)
         errors = collect_event_field_errors(data, require_name=True, require_date=True)
         if errors:
-            return JsonResponse({'errors': errors, "status": 400}, status=400)
+            return json_response({'errors': errors, "status": 400}, status=400)
 
         result = create_or_update_event(
             name=data.get("name"),
@@ -32,26 +52,26 @@ def create(request):
             notifications=data.get("notifications", [])
         )
         if 'errors' in result:
-            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
+            return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
-        return JsonResponse({
+        return json_response({
             'message': 'Event created successfully',
             'event_id': result['event'].id,
             'status': result['status']
         }, status=result['status'])
-
     except json.JSONDecodeError:
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
+        return json_response({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
+        return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
-def get(request):
-    if request.method != 'POST':
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
-
+@require_POST
+def get(request: HttpRequest):
+    """
+    Get events by UID(s) or by user+date range.
+    """
     try:
         data = json.loads(request.body)
         if "event_uids" in data:
@@ -74,31 +94,31 @@ def get(request):
                 errors.append(ERRORS["fields"]["missing_event_id"])
             if not data.get("user_uid") or not data.get("start_date") or not data.get("end_date"):
                 errors.append(ERRORS["fields"]["missing_date"])
-            return JsonResponse({'errors': errors, "status": 400}, status=400)
+            return json_response({'errors': errors, "status": 400}, status=400)
 
-        return JsonResponse({'events': result, "status": 200}, status=200)
-
+        return json_response({'events': result, "status": 200}, status=200)
     except json.JSONDecodeError:
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
+        return json_response({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except ValueError as e:
-        return JsonResponse({'errors': [dict(ERRORS["fields"]["invalid_date_format"], details=str(e))], "status": 400}, status=400)
+        return json_response({'errors': [dict(ERRORS["fields"]["invalid_date_format"], details=str(e))], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
+        return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
-def update(request):
-    if request.method != 'POST':
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
-
+@require_POST
+def update(request: HttpRequest):
+    """
+    Update an existing event.
+    """
     try:
         data = json.loads(request.body)
         errors = []
         if not data.get("event_id"):
             errors.append(ERRORS["fields"]["missing_event_id"])
         if errors:
-            return JsonResponse({'errors': errors, "status": 400}, status=400)
+            return json_response({'errors': errors, "status": 400}, status=400)
 
         result = create_or_update_event(
             event_id=data.get("event_id"),
@@ -113,54 +133,54 @@ def update(request):
             notifications=data.get("notifications", [])
         )
         if 'errors' in result:
-            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
+            return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
-        return JsonResponse({
+        return json_response({
             'message': 'Event updated successfully',
             'event_id': result['event'].id,
             'status': result['status']
         }, status=result['status'])
-
     except json.JSONDecodeError:
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
+        return json_response({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
+        return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
-def delete(request):
-    if request.method != 'POST':
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
-
+@require_POST
+def delete(request: HttpRequest):
+    """
+    Delete an event.
+    """
     try:
         data = json.loads(request.body)
         errors = []
         if not data.get("event_id"):
             errors.append(ERRORS["fields"]["missing_event_id"])
         if errors:
-            return JsonResponse({'errors': errors, "status": 400}, status=400)
+            return json_response({'errors': errors, "status": 400}, status=400)
         result = delete_event(
             event_id=data.get("event_id"),
             user_id=request.user.id
         )
         if 'errors' in result:
-            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
+            return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
-        return JsonResponse({'message': result['message'], "status": result['status']}, status=result['status'])
-
+        return json_response({'message': result['message'], "status": result['status']}, status=result['status'])
     except json.JSONDecodeError:
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
+        return json_response({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
+        return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
 @csrf_protect
 @login_required
-def action(request):
-    if request.method != 'POST':
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_request_method"]], "status": 405}, status=405)
-
+@require_POST
+def action(request: HttpRequest):
+    """
+    Perform an event-related action (invite, accept/decline invite, quit).
+    """
     try:
         body = json.loads(request.body)
         event_id = body.get('event_id')
@@ -175,7 +195,7 @@ def action(request):
         if action_type == 'invite' and not extra_data.get('user_id'):
             errors.append(ERRORS["fields"]["missing_user_id"])
         if errors:
-            return JsonResponse({'errors': errors, "status": 400}, status=400)
+            return json_response({'errors': errors, "status": 400}, status=400)
 
         action_map = {
             'invite': invite_to_group_event,
@@ -185,7 +205,7 @@ def action(request):
         }
 
         if action_type not in action_map:
-            return JsonResponse({'errors': [ERRORS["fields"]["invalid_action"]], "status": 400}, status=400)
+            return json_response({'errors': [ERRORS["fields"]["invalid_action"]], "status": 400}, status=400)
 
         if action_type == 'invite':
             invitee_id = extra_data.get('user_id')
@@ -201,17 +221,18 @@ def action(request):
             )
 
         if 'errors' in result:
-            return JsonResponse({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
+            return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
-        return JsonResponse(result, status=result.get('status', 500))
-
+        return json_response(result, status=result.get('status', 500))
     except json.JSONDecodeError:
-        return JsonResponse({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
+        return json_response({'errors': [ERRORS["general"]["invalid_json"]], "status": 400}, status=400)
     except Exception as e:
-        return JsonResponse({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
+        return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
-def collect_event_field_errors(data, require_name=False, require_date=False):
+def collect_event_field_errors(
+    data: Dict[str, Any], require_name: bool = False, require_date: bool = False
+) -> List[dict]:
     errors = []
     if require_name and not data.get("name"):
         errors.append(ERRORS["fields"]["missing_name"])
