@@ -147,9 +147,8 @@ def action(request: HttpRequest):
     try:
         data = json.loads(request.body)
     except Exception:
-        profile, _ = get_profile(request.user.id, request.user.id)
         return json_response(
-            {"errors": [ERRORS["general"]["invalid_json"]], "user": profile},
+            {"errors": [ERRORS["general"]["invalid_json"]]},
             status=400
         )
 
@@ -173,15 +172,13 @@ def action(request: HttpRequest):
         errors.append(ERRORS["fields"]["missing_user_id"])
 
     if errors:
-        profile, _ = get_profile(request.user.id, request.user.id)
-        return json_response({"errors": errors, "user": profile}, status=400)
+        return json_response({"errors": errors}, status=400)
 
     try:
         other_user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        profile, _ = get_profile(request.user.id, request.user.id)
         return json_response(
-            {"errors": [ERRORS["user"]["not_found"]], "user": profile},
+            {"errors": [ERRORS["user"]["not_found"]]},
             status=404
         )
 
@@ -196,7 +193,7 @@ def action(request: HttpRequest):
         result = delete_friendship(user_sender=request.user, user_receiver=other_user)
     else:
         errors.append(ERRORS["fields"]["invalid_action"])
-        profile, _ = get_profile(request.user.id, request.user.id)
+        profile, _ = get_profile(request.user.id, user_id)
         return json_response({"errors": errors, "user": profile}, status=400)
 
     result_errors = result.get("errors")
@@ -205,10 +202,10 @@ def action(request: HttpRequest):
             result_errors = [result_errors]
         # Merge and deduplicate by code
         unique = {err["code"]: err for err in errors + result_errors}
-        profile, _ = get_profile(request.user.id, request.user.id)
+        profile, _ = get_profile(request.user.id, user_id)
         return json_response({"errors": list(unique.values()), "user": profile}, status=result.get("status", 400))
 
     response = {k: v for k, v in result.items() if k != "status"}
-    profile, _ = get_profile(request.user.id, request.user.id)
+    profile, _ = get_profile(request.user.id, user_id)
     response["user"] = profile
     return json_response(response, status=result.get("status", 200))
