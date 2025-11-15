@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 from django.http import JsonResponse, HttpRequest
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 
@@ -26,7 +26,7 @@ def json_response(data, status=200):
     return JsonResponse(data, status=status, content_type="application/json")
 
 
-@csrf_protect
+@csrf_exempt
 @login_required
 @require_POST
 def create(request: HttpRequest):
@@ -65,7 +65,7 @@ def create(request: HttpRequest):
         return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
-@csrf_protect
+@csrf_exempt
 @login_required
 @require_POST
 def get(request: HttpRequest):
@@ -105,7 +105,7 @@ def get(request: HttpRequest):
         return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
-@csrf_protect
+@csrf_exempt
 @login_required
 @require_POST
 def update(request: HttpRequest):
@@ -146,7 +146,7 @@ def update(request: HttpRequest):
         return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
-@csrf_protect
+@csrf_exempt
 @login_required
 @require_POST
 def delete(request: HttpRequest):
@@ -174,7 +174,7 @@ def delete(request: HttpRequest):
         return json_response({'errors': [dict(ERRORS["general"]["unexpected_error"], details=str(e))], "status": 500}, status=500)
 
 
-@csrf_protect
+@csrf_exempt
 @login_required
 @require_POST
 def action(request: HttpRequest):

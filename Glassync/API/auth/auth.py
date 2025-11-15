@@ -3,7 +3,7 @@ import re
 from typing import List
 
 from django.http import JsonResponse, HttpRequest
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
 from django.contrib.auth import get_user_model
@@ -21,7 +21,7 @@ def json_response(data, status=200):
     )
 
 
-@csrf_protect
+@csrf_exempt
 @require_POST
 def signup(request: HttpRequest):
     """
@@ -61,7 +61,7 @@ def signup(request: HttpRequest):
         }, status=500)
 
 
-@csrf_protect
+@csrf_exempt
 @require_POST
 def login(request: HttpRequest):
     """
@@ -91,7 +91,7 @@ def login(request: HttpRequest):
         }, status=500)
 
 
-@csrf_protect
+@csrf_exempt
 @require_POST
 def logout(request: HttpRequest):
     """
