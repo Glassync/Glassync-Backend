@@ -46,10 +46,17 @@ class Event(models.Model):
 
 class Notification(models.Model):
     id = models.BigAutoField(primary_key=True)
+    id_user_sender = models.ForeignKey(
+        User, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='notifications_sent'
+    )
     timestamp = models.DateTimeField()
     type = models.CharField(max_length=255)
     id_event = models.ForeignKey(Event, on_delete=models.CASCADE, null=True, blank=True)
-    id_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    id_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='notifications_received'
+    )
 
 
 class EventMember(models.Model):
