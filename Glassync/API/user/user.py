@@ -67,6 +67,11 @@ def get(request: HttpRequest):
         request_filter = body.get("request_filter", "all")
         relationship_filter = body.get("relationship_filter", "all")
 
+        # New logic: if relationship_filter is "self", just return the current user profile
+        if relationship_filter == "self":
+            profile, status_code = get_profile(own_uid=own_uid, user_id=own_uid)
+            return json_response({"users": {str(own_uid): profile}}, status=status_code)
+
         result, status_code = find_users(
             searcher_id=own_uid,
             request_string=request_string,
