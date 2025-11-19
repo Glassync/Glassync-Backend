@@ -63,10 +63,7 @@ def get(request: HttpRequest):
             else:
                 return json_response({"errors": errors}, status=404)
 
-        # If no user_ids, handle search filters
-        if "search_string" not in body:
-            return json_response({"errors": [ERRORS["user"]["missing_search_string"]]}, status=400)
-        request_string = body["search_string"]
+        request_string = body.get("search_string", "")
         request_filter = body.get("request_filter", "all")
         relationship_filter = body.get("relationship_filter", "all")
 
