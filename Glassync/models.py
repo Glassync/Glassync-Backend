@@ -96,7 +96,7 @@ class UserEventNotificationSettings(models.Model):
 
 
 class Task(models.Model):
-    time = models.TimeField()
+    time = models.DateTimeField()
     id_event = models.ForeignKey(Event, on_delete=models.CASCADE)
     id_user = models.ForeignKey(User, on_delete=models.CASCADE)
     platform = models.ForeignKey(NotificationPlatform, on_delete=models.CASCADE)
