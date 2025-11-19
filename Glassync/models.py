@@ -90,8 +90,7 @@ class UsersRelationship(models.Model):
 class UserEventNotificationSettings(models.Model):
     id_event = models.ForeignKey(Event, on_delete=models.CASCADE)
     id_user = models.ForeignKey(User, on_delete=models.CASCADE)
-    notification_rule_type = models.CharField(max_length=255, null=True, blank=True)
-    notification_rule_interval = models.IntegerField(null=True, blank=True)
+    notification_interval_in_minutes = models.BigIntegerField(null=True, blank=True)
 
     class Meta:
         unique_together = ('id_event', 'id_user')
