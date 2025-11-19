@@ -71,3 +71,23 @@ def update_task(settings):
             id_user=settings.id_user,
             platform=user_platform.id_notification_platform,
         )
+
+
+def delete_event_notification(user_id, event_id):
+    """
+    Deletes the UserEventNotificationSettings and all Task entries
+    for the given user and event.
+    """
+    # Delete UserEventNotificationSettings
+    UserEventNotificationSettings.objects.filter(
+        id_user_id=user_id,
+        id_event_id=event_id
+    ).delete()
+
+    # Delete all related tasks
+    Task.objects.filter(
+        id_user_id=user_id,
+        id_event_id=event_id
+    ).delete()
+
+    return {"message": "Event notifications and tasks deleted successfully."}
