@@ -55,7 +55,7 @@ def create(request: HttpRequest):
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
         # Handle personal_notifications (call set_event_notification_interval for each)
-        personal_notifications = data.get("personal_notifications", [])
+        personal_notifications = data.get("notifications", [])
         personal_notif_errors = []
         event_id = result['event'].id
         user_id = request.user.id
@@ -148,7 +148,7 @@ def update(request: HttpRequest):
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
         # Handle personal_notifications (call set_event_notification_interval for each)
-        personal_notifications = data.get("personal_notifications", [])
+        personal_notifications = data.get("notifications", [])
         personal_notif_errors = []
         event_id = result['event'].id
         user_id = request.user.id
