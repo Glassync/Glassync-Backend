@@ -20,6 +20,7 @@ from Glassync.database.event.actions import (
     quit_group_event,
     invite_to_group_event,
 )
+from Glassync.database.notification.services import set_event_notification_interval, delete_event_notification
 
 
 def json_response(data, status=200):
@@ -53,6 +54,19 @@ def create(request: HttpRequest):
         )
         if 'errors' in result:
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
+
+        # Handle personal_notifications (call set_event_notification_interval for each)
+        personal_notifications = data.get("personal_notifications", [])
+        personal_notif_errors = []
+        event_id = result['event'].id
+        user_id = request.user.id
+        for interval in personal_notifications:
+            set_result = set_event_notification_interval(event_id, user_id, interval)
+            if "errors" in set_result:
+                personal_notif_errors.append(set_result["errors"])
+
+        if personal_notif_errors:
+            return json_response({'errors': personal_notif_errors, 'status': 400}, status=400)
 
         return json_response({
             'message': 'Event created successfully',
@@ -134,6 +148,23 @@ def update(request: HttpRequest):
         )
         if 'errors' in result:
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
+
+        # Handle personal_notifications (call set_event_notification_interval for each)
+        personal_notifications = data.get("personal_notifications", [])
+        personal_notif_errors = []
+        event_id = result['event'].id
+        user_id = request.user.id
+
+        # Delete all existing notification settings/tasks for this user and event first
+        delete_event_notification(user_id, event_id)
+
+        for interval in personal_notifications:
+            set_result = set_event_notification_interval(event_id, user_id, interval)
+            if "errors" in set_result:
+                personal_notif_errors.append(set_result["errors"])
+
+        if personal_notif_errors:
+            return json_response({'errors': personal_notif_errors, 'status': 400}, status=400)
 
         return json_response({
             'message': 'Event updated successfully',
