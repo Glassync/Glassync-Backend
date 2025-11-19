@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 
-from Glassync.database.notification.services import set_event_notification_interval
+from Glassync.database.notification.services import set_event_notification_interval, delete_event_notification
 from Glassync.models import Event, EventMember
 from Glassync.database.friendship.services import are_friends
 from Glassync.API.errors import ERRORS
@@ -109,6 +109,7 @@ def quit_group_event(user_id, event_id):
 
         event_member = EventMember.objects.get(id_event_id=event_id, id_user_id=user_id, accept_invitation=True)
         event_member.delete()
+        delete_event_notification(user_id, event_id)
         return {'message': 'User has left the event', 'status': 200}
 
     except ObjectDoesNotExist:
