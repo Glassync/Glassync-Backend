@@ -146,6 +146,11 @@ ERRORS = {
             "code": "invalid_recurrence_integer",
             "message_en": "recurrence_rule_interval must be a valid integer",
             "message_ru": "Интервал повторения должен быть целым числом"
+        },
+        "recurrence_type_and_interval_must_match": {
+            "code": "recurrence_type_and_interval_must_match",
+            "message_en": "Both recurrence_rule_type and recurrence_rule_interval must be set, or both must be null",
+            "message_ru": "recurrence_rule_type и recurrence_rule_interval должны быть либо оба указаны, либо оба отсутствовать"
         }
     },
     "auth": {

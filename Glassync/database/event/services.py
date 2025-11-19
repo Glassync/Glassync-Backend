@@ -62,6 +62,11 @@ def create_or_update_event(
         if not time_end:
             errors.append(ERRORS["fields"]["missing_time_end"])
 
+    # Validate recurrence_rule_type and interval: both must be null or both must be not null
+    if (recurrence_rule_type is None and recurrence_rule_interval is not None) or \
+       (recurrence_rule_type is not None and recurrence_rule_interval is None):
+        errors.append(ERRORS["fields"]["recurrence_type_and_interval_must_match"])
+
     # Validate recurrence_rule_type
     valid_recurrence_rule_types = ["daily", "weekly", "monthly", "yearly"]
     if recurrence_rule_type and recurrence_rule_type not in valid_recurrence_rule_types:
