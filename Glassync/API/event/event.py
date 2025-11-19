@@ -49,7 +49,8 @@ def create(request: HttpRequest):
             time_end=data.get("time_end"),
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
-            creator=request.user
+            creator=request.user,
+            notifications=data.get("notifications"),
         )
         if 'errors' in result:
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
