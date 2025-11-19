@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 
 def set_event_notification_interval(id_event, id_user, notification_interval_in_minutes):
     """
-    Sets the notification interval for a user on a specific event.
+    Adds a notification interval for a user on a specific event.
+    Allows multiple intervals per user/event pair.
     """
     # Validate input
     try:
@@ -20,12 +21,21 @@ def set_event_notification_interval(id_event, id_user, notification_interval_in_
             "errors": [ERRORS["fields"]["invalid_notification_interval"]]
         }
 
-    # Create or update UserEventNotificationSettings
+    # Prevent duplicate intervals
+    exists = UserEventNotificationSettings.objects.filter(
+        id_event_id=id_event,
+        id_user_id=id_user,
+        notification_interval_in_minutes=interval
+    ).exists()
+    if exists:
+        return {"message": "Notification interval already exists."}
+
+    # Create new notification interval
     try:
-        settings, _ = UserEventNotificationSettings.objects.create(
+        settings = UserEventNotificationSettings.objects.create(
             id_event_id=id_event,
             id_user_id=id_user,
-            defaults={"notification_interval_in_minutes": interval}
+            notification_interval_in_minutes=interval
         )
     except Exception as e:
         return {
