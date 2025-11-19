@@ -117,15 +117,10 @@ ERRORS = {
             "message_en": 'Each notification must be a dict with "type" and "count"',
             "message_ru": "Каждое уведомление должно быть словарём с ключами 'type' и 'count'"
         },
-        "invalid_notification_type": {
-            "code": "invalid_notification_type",
-            "message_en": 'notification type must be "minutes", "hours", or "days"',
-            "message_ru": "Тип уведомления должен быть 'minutes', 'hours' или 'days'"
-        },
-        "invalid_notification_count": {
-            "code": "invalid_notification_count",
-            "message_en": "notification count must be a positive integer",
-            "message_ru": "Количество уведомлений должно быть положительным числом"
+        "invalid_notification_interval": {
+            "code": "invalid_notification_interval",
+            "message_en": "Notification interval must be a positive integer.",
+            "message_ru": "Интервал уведомления должен быть положительным числом."
         },
         "invalid_notification_integer": {
             "code": "invalid_notification_integer",
@@ -279,6 +274,13 @@ ERRORS = {
             "code": "invalid_data_format",
             "message_en": "Invalid data format in request",
             "message_ru": "Неверный формат данных в запросе"
+        }
+    },
+    "notifications": {
+        "user_event_notification_settings_failed": {
+            "code": "user_event_notification_settings_failed",
+            "message_en": "Failed to update user event notification settings.",
+            "message_ru": "Не удалось обновить настройки уведомлений пользователя для события."
         }
     }
 }

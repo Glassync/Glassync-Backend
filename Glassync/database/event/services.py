@@ -81,27 +81,6 @@ def create_or_update_event(
         except ValueError:
             errors.append(ERRORS["fields"]["invalid_recurrence_integer"])
 
-    # Validate notifications if provided
-    if notifications is None:
-        notifications = []
-
-    if notifications is not None:
-        if not isinstance(notifications, list):
-            errors.append(ERRORS["fields"]["invalid_notifications_type"])
-        else:
-            for notif in notifications:
-                if not isinstance(notif, dict) or 'type' not in notif or 'count' not in notif:
-                    errors.append(ERRORS["fields"]["invalid_notification_entry"])
-                    continue
-                if notif['type'] not in ['minutes', 'hours', 'days']:
-                    errors.append(ERRORS["fields"]["invalid_notification_type"])
-                try:
-                    notif['count'] = int(notif['count'])
-                    if notif['count'] <= 0:
-                        errors.append(ERRORS["fields"]["invalid_notification_count"])
-                except Exception:
-                    errors.append(ERRORS["fields"]["invalid_notification_integer"])
-
     # Convert date field
     if date:
         try:
@@ -128,14 +107,27 @@ def create_or_update_event(
     if notifications is not None:
         event.notifications = notifications
 
+    # Validate notifications if provided
+    if notifications is None:
+        notifications = []
+
+    if not isinstance(notifications, list):
+        errors.append(ERRORS["fields"]["invalid_notification_entry"])
+    else:
+        for notif in notifications:
+            try:
+                notif_int = int(notif)
+                if notif_int <= 0:
+                    errors.append(ERRORS["fields"]["invalid_notification_interval"])
+            except Exception:
+                errors.append(ERRORS["fields"]["invalid_notification_interval"])
+
     event.save()
 
     # Notifications set up
     for notif in notifications:
-        notif_type = notif.get("type")
-        notif_count = notif.get("count")
-        # TODO: notif logic (dummy handling)
-        print(f"Notification: {notif_count} {notif_type} before the event (dummy handling)")
+        notif_int = int(notif)
+        print(f"Notification: {notif_int} minutes before the event (dummy handling)")
 
     return {'event': event, 'status': 201 if not event_id else 200}
 
