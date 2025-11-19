@@ -17,7 +17,8 @@ def create_or_update_event(
     recurrence_rule_type=None,
     recurrence_rule_interval=None,
     creator=None,
-    user_id=None
+    user_id=None,
+    notifications=None
 ):
     """
     Handles creating or updating an event in the database, including notification intervals.
@@ -33,6 +34,34 @@ def create_or_update_event(
             return {'errors': [ERRORS["event"]["event_not_found"]], 'status': 404}
 
         if event.creator_id != user_id:
+            is_member = EventMember.objects.filter(
+                id_event_id=event_id,
+                id_user_id=user_id,
+                accept_invitation=True
+            ).exists()
+            if not is_member:
+                return {'errors': [ERRORS["event"]["permission_denied"]], 'status': 403}
+
+            notif_errors = []
+            if notifications is not None:
+                for interval in notifications:
+                    try:
+                        notif_int = int(interval)
+                        if notif_int <= 0:
+                            notif_errors.append(ERRORS["fields"]["invalid_notification_interval"])
+                    except Exception:
+                        notif_errors.append(ERRORS["fields"]["invalid_notification_interval"])
+
+                # If there were any errors, return immediately—do NOT proceed with further logic
+                if notif_errors:
+                    return {'errors': notif_errors, 'status': 400}
+
+                # All intervals are valid, so you can now call set_event_notification_interval, etc.
+                delete_event(event_id, user_id)
+                for interval in notifications or []:
+                    set_event_notification_interval(event_id, user_id, int(interval))
+                    return {'message': 'Personal notifications for group event updated successfully', 'status': 200}
+
             return {'errors': [ERRORS["event"]["permission_denied"]], 'status': 403}
     else:
         # Create a new event
