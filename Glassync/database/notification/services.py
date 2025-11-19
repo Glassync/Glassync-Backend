@@ -51,7 +51,7 @@ def set_event_notification_interval(id_event, id_user, notification_interval_in_
 
 def update_task(settings):
     """
-    Updates notification tasks for a given user's event notification settings.
+    Deletes all tasks for a given user/event and re-creates them for each notification interval.
     """
     # Remove all tasks for this event/user
     Task.objects.filter(id_event=settings.id_event, id_user=settings.id_user).delete()
@@ -62,25 +62,31 @@ def update_task(settings):
         active=True,
     )
 
-    # Get the event time and date
-    event_time = settings.id_event.time_start
-    event_date = settings.id_event.date
+    # Find all UserEventNotificationSettings for this user/event
+    all_settings = UserEventNotificationSettings.objects.filter(
+        id_event=settings.id_event,
+        id_user=settings.id_user
+    )
 
-    if not event_time or not event_date:
-        # Optionally, log or handle this case: missing event time or date
-        return
+    for notif_setting in all_settings:
+        event_time = notif_setting.id_event.time_start
+        event_date = notif_setting.id_event.date
 
-    event_datetime = datetime.combine(event_date, event_time)
-    notification_time = (event_datetime - timedelta(minutes=settings.notification_interval_in_minutes)).time()
+        if not event_time or not event_date:
+            # Optionally, log or handle this case: missing event time or date
+            continue
 
-    # Create a task for each platform
-    for user_platform in active_platforms:
-        Task.objects.create(
-            time=notification_time,
-            id_event=settings.id_event,
-            id_user=settings.id_user,
-            platform=user_platform.id_notification_platform,
-        )
+        event_datetime = datetime.combine(event_date, event_time)
+        notification_time = event_datetime - timedelta(minutes=notif_setting.notification_interval_in_minutes)
+
+        # Create a task for each active platform
+        for user_platform in active_platforms:
+            Task.objects.create(
+                time=notification_time,
+                id_event=notif_setting.id_event,
+                id_user=notif_setting.id_user,
+                platform=user_platform.id_notification_platform,
+            )
 
 
 def delete_event_notification(user_id, event_id):
