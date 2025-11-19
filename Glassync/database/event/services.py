@@ -1,3 +1,4 @@
+from Glassync.database.notification.services import set_event_notification_interval
 from Glassync.models import Event, EventMember
 from Glassync.database.friendship.services import are_friends
 from datetime import datetime
@@ -126,8 +127,7 @@ def create_or_update_event(
 
     # Notifications set up
     for notif in notifications:
-        notif_int = int(notif)
-        print(f"Notification: {notif_int} minutes before the event (dummy handling)")
+        set_event_notification_interval(event.id, user_id, int(notif))
 
     return {'event': event, 'status': 201 if not event_id else 200}
 
