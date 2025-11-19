@@ -92,7 +92,7 @@ class UserEventNotificationSettings(models.Model):
     notification_interval_in_minutes = models.BigIntegerField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('id_event', 'id_user')
+        unique_together = ('id_event', 'id_user', 'notification_interval_in_minutes')
 
 
 class Task(models.Model):
