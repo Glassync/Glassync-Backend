@@ -22,7 +22,7 @@ def set_event_notification_interval(id_event, id_user, notification_interval_in_
 
     # Create or update UserEventNotificationSettings
     try:
-        settings, _ = UserEventNotificationSettings.objects.update_or_create(
+        settings, _ = UserEventNotificationSettings.objects.create(
             id_event_id=id_event,
             id_user_id=id_user,
             defaults={"notification_interval_in_minutes": interval}
