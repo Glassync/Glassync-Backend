@@ -49,8 +49,7 @@ def create(request: HttpRequest):
             time_end=data.get("time_end"),
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
-            creator=request.user,
-            notifications=data.get("notifications", [])
+            creator=request.user
         )
         if 'errors' in result:
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
@@ -143,8 +142,7 @@ def update(request: HttpRequest):
             time_end=data.get("time_end"),
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
-            user_id=request.user.id,
-            notifications=data.get("notifications", [])
+            user_id=request.user.id
         )
         if 'errors' in result:
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))

@@ -16,8 +16,7 @@ def create_or_update_event(
     recurrence_rule_type=None,
     recurrence_rule_interval=None,
     creator=None,
-    user_id=None,
-    notifications=None,
+    user_id=None
 ):
     """
     Handles creating or updating an event in the database, including notification intervals.
@@ -105,29 +104,8 @@ def create_or_update_event(
         event.recurrence_rule_type = recurrence_rule_type
     if recurrence_rule_interval is not None:
         event.recurrence_rule_interval = recurrence_rule_interval
-    if notifications is not None:
-        event.notifications = notifications
-
-    # Validate notifications if provided
-    if notifications is None:
-        notifications = []
-
-    if not isinstance(notifications, list):
-        errors.append(ERRORS["fields"]["invalid_notification_entry"])
-    else:
-        for notif in notifications:
-            try:
-                notif_int = int(notif)
-                if notif_int <= 0:
-                    errors.append(ERRORS["fields"]["invalid_notification_interval"])
-            except Exception:
-                errors.append(ERRORS["fields"]["invalid_notification_interval"])
 
     event.save()
-
-    # Notifications set up
-    for notif in notifications:
-        set_event_notification_interval(event.id, user_id, int(notif))
 
     return {'event': event, 'status': 201 if not event_id else 200}
 
