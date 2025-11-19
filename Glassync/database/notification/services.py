@@ -91,3 +91,19 @@ def delete_event_notification(user_id, event_id):
     ).delete()
 
     return {"message": "Event notifications and tasks deleted successfully."}
+
+
+def get_notification_times(user_id, event_id):
+    """
+    Returns a list of all notification intervals (in minutes) for a user and event.
+    Example output: [20, 15, 30]
+    """
+    from Glassync.models import UserEventNotificationSettings
+
+    # Query all notification settings for this user and event
+    intervals = list(
+        UserEventNotificationSettings.objects
+        .filter(id_user_id=user_id, id_event_id=event_id)
+        .values_list("notification_interval_in_minutes", flat=True)
+    )
+    return intervals
