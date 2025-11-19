@@ -1,5 +1,5 @@
 from Glassync.database.notification.services import set_event_notification_interval, get_notification_times, \
-    delete_event_notifications_for_all_users
+    delete_event_notifications_for_all_users, delete_event_notification
 from Glassync.models import Event, EventMember
 from Glassync.database.friendship.services import are_friends
 from datetime import datetime
@@ -57,10 +57,11 @@ def create_or_update_event(
                     return {'errors': notif_errors, 'status': 400}
 
                 # All intervals are valid, so you can now call set_event_notification_interval, etc.
-                delete_event(event_id, user_id)
+                delete_event_notification(user_id, event_id)
                 for interval in notifications or []:
                     set_event_notification_interval(event_id, user_id, int(interval))
-                    return {'message': 'Personal notifications for group event updated successfully', 'status': 200}
+
+                return {'event': event, 'status': 201 if not event_id else 200}
 
             return {'errors': [ERRORS["event"]["permission_denied"]], 'status': 403}
     else:
@@ -136,6 +137,26 @@ def create_or_update_event(
         event.recurrence_rule_interval = recurrence_rule_interval
 
     event.save()
+
+    if notifications is not None:
+        notif_errors = []
+        for interval in notifications:
+            try:
+                notif_int = int(interval)
+                if notif_int <= 0:
+                    notif_errors.append(ERRORS["fields"]["invalid_notification_interval"])
+            except Exception:
+                notif_errors.append(ERRORS["fields"]["invalid_notification_interval"])
+
+        # If there were any errors, return immediately—do NOT proceed with further logic
+        if notif_errors:
+            return {'errors': notif_errors, 'status': 400}
+
+        # All intervals are valid, so you can now call set_event_notification_interval, etc.
+        if event_id:
+            delete_event_notification(user_id, event_id)
+            for interval in notifications or []:
+                set_event_notification_interval(event_id, user_id, int(interval))
 
     return {'event': event, 'status': 201 if not event_id else 200}
 
