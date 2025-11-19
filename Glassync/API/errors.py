@@ -178,8 +178,8 @@ ERRORS = {
         },
         "permission_denied": {
             "code": "permission_denied",
-            "message_en": "Permission denied. Only the creator can edit/delete this event.",
-            "message_ru": "Недостаточно прав. Только создатель может редактировать или удалять событие."
+            "message_en": "Permission denied. Only the creator can edit, delete or invite to this event.",
+            "message_ru": "Недостаточно прав. Только создатель может редактировать, удалять событие и приглашать других."
         },
         "invite_not_friends": {
             "code": "invite_not_friends",

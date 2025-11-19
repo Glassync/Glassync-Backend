@@ -11,6 +11,14 @@ def invite_to_group_event(user_owner, user_id, event_id):
     or 'errors' (list) and 'status'.
     """
     try:
+        # Check if the event exists and user_owner is the creator
+        event = Event.objects.get(id=event_id)
+        if event.creator_id != user_owner:
+            return {
+                'errors': [ERRORS["event"]["permission_denied"]],
+                'status': 403
+            }
+
         # Check if the two users are friends
         if not are_friends(user_owner, user_id):
             return {
@@ -29,7 +37,7 @@ def invite_to_group_event(user_owner, user_id, event_id):
         EventMember.objects.create(id_event_id=event_id, id_user_id=user_id, accept_invitation=False)
         return {'message': 'Invitation sent successfully', 'status': 201}
 
-    except ObjectDoesNotExist:
+    except Event.DoesNotExist:
         return {
             'errors': [ERRORS["event"]["event_not_found"]],
             'status': 404
