@@ -1,4 +1,5 @@
-from Glassync.database.notification.services import set_event_notification_interval
+from Glassync.database.notification.services import set_event_notification_interval, get_notification_times, \
+    delete_event_notifications_for_all_users
 from Glassync.models import Event, EventMember
 from Glassync.database.friendship.services import are_friends
 from datetime import datetime
@@ -138,7 +139,7 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
                         "recurrence_rule_type": event.recurrence_rule_type,
                         "recurrence_rule_interval": event.recurrence_rule_interval,
                         "creator_id": event.creator_id,
-                        "notifications": event.notifications,
+                        "notifications": get_notification_times(user_uid, event.id),
                     }
                 else:
                     result[event.id] = {
@@ -205,7 +206,7 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
                     "recurrence_rule_type": event.recurrence_rule_type,
                     "recurrence_rule_interval": event.recurrence_rule_interval,
                     "creator_id": event.creator_id,
-                    "notifications": event.notifications,
+                    "notifications": get_notification_times(user_uid, event.id),
                 }
             else:
                 result[event.id] = {
@@ -226,6 +227,7 @@ def delete_event(event_id, user_id):
         if event.creator_id != user_id:
             return {'errors': [ERRORS["event"]["permission_denied"]], 'status': 403}
         EventMember.objects.filter(id_event_id=event_id).delete()
+        delete_event_notifications_for_all_users(event_id)
         event.delete()
         return {'message': 'Event and associated members deleted successfully', 'status': 200}
     except ObjectDoesNotExist:

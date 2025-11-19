@@ -1,5 +1,5 @@
 from Glassync.API.errors import ERRORS
-from Glassync.models import UserNotificationSettings, Task, UserEventNotificationSettings
+from Glassync.models import UserNotificationSettings, Task, UserEventNotificationSettings, Event, EventMember
 
 from datetime import datetime, timedelta
 
@@ -91,6 +91,34 @@ def delete_event_notification(user_id, event_id):
     ).delete()
 
     return {"message": "Event notifications and tasks deleted successfully."}
+
+
+def delete_event_notifications_for_all_users(event_id):
+    """
+    Deletes all UserEventNotificationSettings and Task entries for all users participating in a given event.
+    """
+    # Get the event
+    try:
+        event = Event.objects.get(id=event_id)
+    except Event.DoesNotExist:
+        return {"errors": ["Event does not exist."]}
+
+    # Collect all user IDs: creator + members who accepted invitation
+    user_ids = set()
+
+    # Add the event creator
+    if event.creator_id:
+        user_ids.add(event.creator_id)
+
+    # Add all accepted event members
+    member_user_ids = (EventMember.objects.filter(id_event_id=event_id, accept_invitation=True).values_list("id_user_id", flat=True))
+    user_ids.update(member_user_ids)
+
+    # Delete notifications for all users
+    for user_id in user_ids:
+        delete_event_notification(user_id, event_id)
+
+    return {"message": "Event notifications and tasks deleted for all users."}
 
 
 def get_notification_times(user_id, event_id):
