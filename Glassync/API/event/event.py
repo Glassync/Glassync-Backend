@@ -50,7 +50,7 @@ def create(request: HttpRequest):
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
             creator=request.user,
-            notifications=data.get("notifications"),
+            notifications=data.get("notifications", None),
         )
         if 'errors' in result:
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
@@ -149,21 +149,23 @@ def update(request: HttpRequest):
             return json_response({'errors': result['errors'], 'status': result.get('status', 400)}, status=result.get('status', 400))
 
         # Handle personal_notifications (call set_event_notification_interval for each)
-        personal_notifications = data.get("notifications", [])
-        personal_notif_errors = []
-        event_id = result['event'].id
-        user_id = request.user.id
+        personal_notifications = data.get("notifications", None)
 
-        # Delete all existing notification settings/tasks for this user and event first
-        delete_event_notification(user_id, event_id)
+        if personal_notifications is not None:
+            personal_notif_errors = []
+            event_id = result['event'].id
+            user_id = request.user.id
 
-        for interval in personal_notifications:
-            set_result = set_event_notification_interval(event_id, user_id, interval)
-            if "errors" in set_result:
-                personal_notif_errors.append(set_result["errors"])
+            # Delete all existing notification settings/tasks for this user and event first
+            delete_event_notification(user_id, event_id)
 
-        if personal_notif_errors:
-            return json_response({'errors': personal_notif_errors, 'status': 400}, status=400)
+            for interval in personal_notifications:
+                set_result = set_event_notification_interval(event_id, user_id, interval)
+                if "errors" in set_result:
+                    personal_notif_errors.append(set_result["errors"])
+
+            if personal_notif_errors:
+                return json_response({'errors': personal_notif_errors, 'status': 400}, status=400)
 
         return json_response({
             'message': 'Event updated successfully',
