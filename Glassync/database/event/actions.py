@@ -55,15 +55,12 @@ def accept_group_event_invite(user_id, event_id, notifications=None):
         event_member.accept_invitation = True
         event_member.save()
 
-        # Handle notifications
         if notifications is not None:
-            # If you only allow one notification interval per event/user, pick the first valid one
             for notif in notifications:
                 try:
                     notif_int = int(notif)
                     if notif_int > 0:
                         set_event_notification_interval(event_id, user_id, notif_int)
-                        break  # Only set once, break after the first valid
                 except Exception:
                     return {
                         'errors': [ERRORS["general"]["unexpected_error"]],

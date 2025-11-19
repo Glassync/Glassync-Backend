@@ -243,6 +243,14 @@ def action(request: HttpRequest):
                 user_id=invitee_id,
                 event_id=event_id
             )
+        elif action_type == 'accept_invite':
+            # Pass notifications if present in extra_data
+            notifications = extra_data.get('notifications', None)
+            result = action_map[action_type](
+                user_id=request.user.id,
+                event_id=event_id,
+                notifications=notifications
+            )
         else:
             result = action_map[action_type](
                 user_id=request.user.id,
