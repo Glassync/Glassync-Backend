@@ -186,19 +186,42 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
 def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed=False):
     if own_uid != user_uid and not are_friends(own_uid, user_uid):
         return {}
+
     try:
-        creator_events = Event.objects.filter(
+        # Single (non-repeating) events in date range
+        creator_single = Event.objects.filter(
             creator_id=user_uid,
             date__range=[start_date, end_date],
+            recurrence_rule_type__isnull=True,
+            recurrence_rule_interval__isnull=True,
         )
-        member_events = Event.objects.filter(
+        member_single = Event.objects.filter(
             id__in=EventMember.objects.filter(
                 id_user_id=user_uid,
                 accept_invitation=True
             ).values_list('id_event_id', flat=True),
             date__range=[start_date, end_date],
+            recurrence_rule_type__isnull=True,
+            recurrence_rule_interval__isnull=True,
         )
-        all_events = (creator_events | member_events).distinct()
+
+        # Recurrent (repeating) events, both recurrence fields NOT null
+        creator_recurrent = Event.objects.filter(
+            creator_id=user_uid,
+            recurrence_rule_type__isnull=False,
+            recurrence_rule_interval__isnull=False,
+        )
+        member_recurrent = Event.objects.filter(
+            id__in=EventMember.objects.filter(
+                id_user_id=user_uid,
+                accept_invitation=True
+            ).values_list('id_event_id', flat=True),
+            recurrence_rule_type__isnull=False,
+            recurrence_rule_interval__isnull=False,
+        )
+        all_events = (creator_single | member_single | creator_recurrent | member_recurrent).distinct()
+
+        # Building the result
         result = {}
         for event in all_events:
             if detailed:
@@ -220,7 +243,9 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
                     "name": event.name,
                     "date": event.date,
                 }
+
         return result
+
     except Exception as e:
         return {}
 
