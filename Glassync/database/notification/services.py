@@ -176,3 +176,28 @@ def create_notification(id_user_sender, id_user, id_event=None):
             type=notification_type
         )
     return notification
+
+
+def delete_notification(id_user, id_user_sender=None, id_event=None):
+    """
+    Deletes a Notification.
+    - If id_event is provided, deletes all notifications for that event and user.
+    - If only id_user_sender and id_user are provided, deletes the friend_request notification.
+    Returns the number of deleted notifications.
+    """
+    if id_event is not None:
+        # Delete event_invite notifications (optionally, could filter by type if needed)
+        deleted_count, _ = Notification.objects.filter(
+            id_user_id=id_user,
+            id_event_id=id_event
+        ).delete()
+    elif id_user_sender is not None:
+        # Delete friend_request notifications
+        deleted_count, _ = Notification.objects.filter(
+            id_user_id=id_user,
+            id_user_sender_id=id_user_sender,
+            id_event__isnull=True  # Ensure it's not an event invite
+        ).delete()
+    else:
+        raise ValueError("Either id_event or id_user_sender must be provided.")
+    return deleted_count
