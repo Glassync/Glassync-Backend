@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 
-from Glassync.database.notification.services import set_event_notification_interval, delete_event_notification
+from Glassync.database.notification.services import set_event_notification_interval, delete_event_notification, \
+    create_notification
 from Glassync.models import Event, EventMember
 from Glassync.database.friendship.services import are_friends
 from Glassync.API.errors import ERRORS
@@ -37,6 +38,8 @@ def invite_to_group_event(user_owner, user_id, event_id):
 
         # Add the invitation
         EventMember.objects.create(id_event_id=event_id, id_user_id=user_id, accept_invitation=False)
+        create_notification(id_user_sender=user_owner, id_user=user_id, id_event=event_id)
+
         return {'message': 'Invitation sent successfully', 'status': 201}
 
     except Event.DoesNotExist:
