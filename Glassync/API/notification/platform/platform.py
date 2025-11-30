@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from Glassync.API.errors import ERRORS
+from Glassync.database.notification.platform import update_all_tasks
 from Glassync.models import UserNotificationSettings, NotificationPlatform
 
 
@@ -62,6 +63,9 @@ def update_notification_setting(request: HttpRequest):
                 status=404
             )
 
+        # Track old value
+        old_active = setting.active
+
         # Update fields
         if "active" in body:
             setting.active = bool(body["active"])
@@ -72,6 +76,11 @@ def update_notification_setting(request: HttpRequest):
             "id_notification_platform": setting.id_notification_platform_id,
             "active": setting.active,
         }
+
+        # Only update tasks if 'active' was changed
+        if "active" in body and old_active != setting.active:
+            update_all_tasks(user.id)
+
         return JsonResponse({"notification_setting": result}, status=200)
 
     except json.JSONDecodeError:
