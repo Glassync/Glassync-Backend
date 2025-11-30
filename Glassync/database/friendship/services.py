@@ -55,6 +55,7 @@ def decline_friendship(user_sender, user_declined):
     if status == "friend_request_sent":
         relationship, _, _ = get_relationship_row(user_sender, user_declined)
         relationship.delete()
+        delete_notification(id_user=user_declined, id_user_sender=user_sender)
         return {'message': 'Friendship request declined', 'status': 200}
     return {'errors': [ERRORS["friendship"]["no_request_found"]], 'status': 400}
 
