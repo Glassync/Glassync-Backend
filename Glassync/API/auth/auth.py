@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate, login as dj_login, logout as dj_lo
 from django.contrib.auth import get_user_model
 
 from Glassync.API.errors import ERRORS
+from Glassync.database.notification.plaform import create_user_notification_settings_for_user
 
 User = get_user_model()
 
@@ -52,6 +53,8 @@ def signup(request: HttpRequest):
             nickname=nickname,
             avatar_path=avatar_path
         )
+        create_user_notification_settings_for_user(user.id)
+
         return json_response({"message": "User created successfully"}, status=201)
     except json.JSONDecodeError:
         return json_response({"errors": [ERRORS["general"]["invalid_json"]]}, status=400)

@@ -77,7 +77,7 @@ class UserNotificationSettings(models.Model):
     id_user = models.ForeignKey(User, on_delete=models.CASCADE)
     id_notification_platform = models.ForeignKey(NotificationPlatform, on_delete=models.CASCADE)
     active = models.BooleanField(default=False)
-    attr = models.CharField(max_length=255)
+    attr = models.CharField(null=True, max_length=255)
 
     class Meta:
         unique_together = ('id_user', 'id_notification_platform')
