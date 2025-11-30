@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 
 from Glassync.API.errors import ERRORS
+from Glassync.database.event.services import can_view_event
 from Glassync.database.user.profile import (
     get_profile,
     update_profile,
@@ -19,6 +20,7 @@ from Glassync.database.friendship.services import (
     request_friendship,
     delete_friendship,
 )
+from Glassync.models import EventMember, Event
 
 User = get_user_model()
 
@@ -33,11 +35,67 @@ def json_response(data: dict, status: int = 200):
 def get(request: HttpRequest):
     """
     Retrieve the profiles of one or more users (by user_ids), or search for users based on filters via POST request.
+    If 'event_id' is provided, return the creator and members of the event.
     """
     try:
         body = json.loads(request.body)
         own_uid = request.user.id
 
+        # If event_id is present, return event creator and members
+        event_id = body.get("event_id")
+        if event_id is not None:
+            # Check permissions
+            if not can_view_event(own_uid, event_id):
+                return json_response({"errors": [{
+                    "code": "forbidden",
+                    "message_en": "You do not have permission to view this event.",
+                    "message_ru": "У вас нет доступа к этому событию."
+                }]}, status=403)
+
+            # Get the event
+            try:
+                event = Event.objects.get(id=event_id)
+            except Event.DoesNotExist:
+                return json_response({"errors": [{
+                    "code": "event_not_found",
+                    "message_en": "Event not found.",
+                    "message_ru": "Событие не найдено."
+                }]}, status=404)
+
+            # Get creator id
+            user_ids = [event.creator_id]
+
+            # Get accepted member ids except the creator
+            member_ids = list(
+                EventMember.objects.filter(
+                    id_event_id=event_id,
+                    accept_invitation=True
+                ).exclude(id_user_id=event.creator_id)
+                .values_list('id_user_id', flat=True)
+            )
+            user_ids.extend(member_ids)
+
+            # Collect profiles
+            users = {}
+            errors = {}
+            for uid in user_ids:
+                profile, status_code = get_profile(own_uid=own_uid, user_id=uid)
+                if status_code == 200:
+                    users[str(uid)] = profile
+                else:
+                    errors[str(uid)] = profile.get("errors", [{
+                        "code": "unknown_error",
+                        "message_en": "Unknown error",
+                        "message_ru": "Неизвестная ошибка"
+                    }])
+
+            response = {"users": users}
+            if errors:
+                response["errors"] = errors
+                return json_response(response, status=206 if users else 404)
+            return json_response(response, status=200)
+
+        # Existing logic for user_ids
         user_ids = body.get("user_ids")
 
         if user_ids is not None:
@@ -67,7 +125,7 @@ def get(request: HttpRequest):
         request_filter = body.get("request_filter", "all")
         relationship_filter = body.get("relationship_filter", "all")
 
-        # New logic: if relationship_filter is "self", just return the current user profile
+        # If relationship_filter is "self", just return the current user profile
         if relationship_filter == "self":
             profile, status_code = get_profile(own_uid=own_uid, user_id=own_uid)
             return json_response({"users": {str(own_uid): profile}}, status=status_code)
