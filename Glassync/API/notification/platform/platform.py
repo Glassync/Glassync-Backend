@@ -65,8 +65,6 @@ def update_notification_setting(request: HttpRequest):
         # Update fields
         if "active" in body:
             setting.active = bool(body["active"])
-        if "attr" in body:
-            setting.attr = body["attr"]
         setting.save()
 
         result = {
