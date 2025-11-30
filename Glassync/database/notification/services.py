@@ -1,5 +1,6 @@
 from Glassync.API.errors import ERRORS
-from Glassync.models import UserNotificationSettings, Task, UserEventNotificationSettings, Event, EventMember
+from Glassync.models import UserNotificationSettings, Task, UserEventNotificationSettings, Event, EventMember, \
+    Notification
 
 from datetime import datetime, timedelta
 
@@ -151,3 +152,27 @@ def get_notification_times(user_id, event_id):
         .values_list("notification_interval_in_minutes", flat=True)
     )
     return intervals
+
+
+def create_notification(id_user_sender, id_user, id_event=None):
+    """
+    Creates a Notification.
+    - Always requires id_user_sender and id_user.
+    - If id_event is provided, type is 'event_invite', else 'friend_request'.
+    """
+    if id_event is not None:
+        notification_type = "event_invite"
+        notification = Notification.objects.create(
+            id_user_sender_id=id_user_sender,
+            id_user_id=id_user,
+            id_event_id=id_event,
+            type=notification_type
+        )
+    else:
+        notification_type = "friend_request"
+        notification = Notification.objects.create(
+            id_user_sender_id=id_user_sender,
+            id_user_id=id_user,
+            type=notification_type
+        )
+    return notification
