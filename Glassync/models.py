@@ -50,7 +50,7 @@ class Notification(models.Model):
         User, on_delete=models.CASCADE, null=True, blank=True,
         related_name='notifications_sent'
     )
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(auto_now_add=True)
     type = models.CharField(max_length=255)
     id_event = models.ForeignKey(Event, on_delete=models.CASCADE, null=True, blank=True)
     id_user = models.ForeignKey(
