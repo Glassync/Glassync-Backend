@@ -1,4 +1,4 @@
-from Glassync.database.notification.services import create_notification
+from Glassync.database.notification.services import create_notification, delete_notification
 from Glassync.models import UsersRelationship
 from django.core.exceptions import ObjectDoesNotExist
 from Glassync.API.errors import ERRORS
@@ -45,6 +45,7 @@ def accept_friendship(user_sender, user_accepted):
         relationship, _, _ = get_relationship_row(user_sender, user_accepted)
         relationship.status_user2 = True
         relationship.save()
+        delete_notification(id_user=user_accepted, id_user_sender=user_sender)
         return {'message': 'Friendship request accepted', 'status': 200}
     return {'errors': [ERRORS["friendship"]["no_request_found"]], 'status': 400}
 
