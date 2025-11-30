@@ -87,6 +87,7 @@ def decline_group_event_invite(user_id, event_id):
     try:
         event_member = EventMember.objects.get(id_event_id=event_id, id_user_id=user_id, accept_invitation=False)
         event_member.delete()
+        delete_notification(id_user=user_id, id_event=event_id)
         return {'message': 'Invitation declined', 'status': 200}
 
     except ObjectDoesNotExist:
