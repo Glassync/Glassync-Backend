@@ -1,3 +1,4 @@
+from Glassync.database.notification.services import create_notification
 from Glassync.models import UsersRelationship
 from django.core.exceptions import ObjectDoesNotExist
 from Glassync.API.errors import ERRORS
@@ -68,6 +69,7 @@ def request_friendship(user_sender, user_receiver):
             status_user1=True,
             status_user2=False
         )
+        create_notification(id_user_sender=user_sender, id_user=user_receiver)
         return {'message': 'Friendship request sent', 'status': 201}
     return {'errors': [ERRORS["friendship"]["could_not_create"]], 'status': 400}
 
