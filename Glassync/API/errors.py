@@ -282,5 +282,22 @@ ERRORS = {
             "message_en": "Failed to update user event notification settings.",
             "message_ru": "Не удалось обновить настройки уведомлений пользователя для события."
         }
+    },
+    "notification_settings": {
+        "missing_platform_name": {
+            "code": "missing_platform_name",
+            "message_en": "Notification platform name is required.",
+            "message_ru": "Требуется имя платформы уведомлений."
+        },
+        "platform_not_found": {
+            "code": "platform_not_found",
+            "message_en": "Notification platform not found.",
+            "message_ru": "Платформа уведомлений не найдена."
+        },
+        "user_setting_not_found": {
+            "code": "user_setting_not_found",
+            "message_en": "User notification setting for this platform not found.",
+            "message_ru": "Настройка уведомлений пользователя для этой платформы не найдена."
+        }
     }
 }

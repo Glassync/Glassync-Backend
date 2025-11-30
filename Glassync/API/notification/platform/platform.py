@@ -5,6 +5,7 @@ from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from Glassync.API.errors import ERRORS
 from Glassync.models import UserNotificationSettings, NotificationPlatform
 
 
@@ -40,17 +41,26 @@ def update_notification_setting(request: HttpRequest):
         user = request.user
         platform_name = body.get("platform_name")
         if not platform_name:
-            return JsonResponse({"errors": ["platform_name is required"]}, status=400)
+            return JsonResponse(
+                {"errors": [ERRORS["notification_settings"]["missing_platform_name"]]},
+                status=400
+            )
 
         try:
             platform = NotificationPlatform.objects.get(name=platform_name)
         except NotificationPlatform.DoesNotExist:
-            return JsonResponse({"errors": [f"Platform '{platform_name}' not found"]}, status=404)
+            return JsonResponse(
+                {"errors": [ERRORS["notification_settings"]["platform_not_found"]]},
+                status=404
+            )
 
         try:
             setting = UserNotificationSettings.objects.get(id_user=user, id_notification_platform=platform)
         except UserNotificationSettings.DoesNotExist:
-            return JsonResponse({"errors": [f"UserNotificationSettings for platform '{platform_name}' not found"]}, status=404)
+            return JsonResponse(
+                {"errors": [ERRORS["notification_settings"]["user_setting_not_found"]]},
+                status=404
+            )
 
         # Update fields
         if "active" in body:
@@ -59,7 +69,6 @@ def update_notification_setting(request: HttpRequest):
             setting.attr = body["attr"]
         setting.save()
 
-        # Return updated setting (excluding attr)
         result = {
             "id": setting.id,
             "id_notification_platform": setting.id_notification_platform_id,
@@ -68,6 +77,13 @@ def update_notification_setting(request: HttpRequest):
         return JsonResponse({"notification_setting": result}, status=200)
 
     except json.JSONDecodeError:
-        return JsonResponse({"errors": ["Invalid JSON"]}, status=400)
+        return JsonResponse(
+            {"errors": [ERRORS["general"]["invalid_json"]]},
+            status=400
+        )
     except Exception as e:
-        return JsonResponse({"errors": [f"Unexpected error: {str(e)}"]}, status=500)
+        error = dict(ERRORS["general"]["unexpected_error"], details=str(e))
+        return JsonResponse(
+            {"errors": [error]},
+            status=500
+        )
