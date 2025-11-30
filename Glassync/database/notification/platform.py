@@ -1,4 +1,5 @@
-from Glassync.models import User, NotificationPlatform, UserNotificationSettings
+from Glassync.database.notification.services import update_task
+from Glassync.models import User, NotificationPlatform, UserNotificationSettings, UserEventNotificationSettings
 
 
 def create_user_notification_settings_for_user(user_id):
@@ -19,3 +20,12 @@ def create_user_notification_settings_for_user(user_id):
         if was_created:
             created.append(obj)
     return created
+
+
+def update_all_tasks(user_id):
+    """
+    For a given user, updates (removes and recreates) all tasks for all their event notification settings.
+    """
+    settings_list = UserEventNotificationSettings.objects.filter(id_user=user_id)
+    for settings in settings_list:
+        update_task(settings)
