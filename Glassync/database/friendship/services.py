@@ -45,7 +45,7 @@ def accept_friendship(user_sender, user_accepted):
         relationship, _, _ = get_relationship_row(user_sender, user_accepted)
         relationship.status_user2 = True
         relationship.save()
-        delete_notification(id_user=user_accepted, id_user_sender=user_sender)
+        delete_notification(id_user=user_accepted.id, id_user_sender=user_sender.id)
         return {'message': 'Friendship request accepted', 'status': 200}
     return {'errors': [ERRORS["friendship"]["no_request_found"]], 'status': 400}
 
@@ -55,7 +55,7 @@ def decline_friendship(user_sender, user_declined):
     if status == "friend_request_sent":
         relationship, _, _ = get_relationship_row(user_sender, user_declined)
         relationship.delete()
-        delete_notification(id_user=user_declined, id_user_sender=user_sender)
+        delete_notification(id_user=user_declined.id, id_user_sender=user_sender.id)
         return {'message': 'Friendship request declined', 'status': 200}
     return {'errors': [ERRORS["friendship"]["no_request_found"]], 'status': 400}
 
@@ -71,7 +71,7 @@ def request_friendship(user_sender, user_receiver):
             status_user1=True,
             status_user2=False
         )
-        create_notification(id_user_sender=user_sender, id_user=user_receiver)
+        create_notification(id_user_sender=user_sender.id, id_user=user_receiver.id)
         return {'message': 'Friendship request sent', 'status': 201}
     return {'errors': [ERRORS["friendship"]["could_not_create"]], 'status': 400}
 
@@ -81,7 +81,7 @@ def cancel_friendship_request(user_sender, user_receiver):
     if status == "friend_request_sent":
         relationship, _, _ = get_relationship_row(user_sender, user_receiver)
         relationship.delete()
-        delete_notification(id_user=user_receiver, id_user_sender=user_sender)
+        delete_notification(id_user=user_receiver.id, id_user_sender=user_sender.id)
         return {'message': 'Friendship request canceled', 'status': 200}
     return {'errors': [ERRORS["friendship"]["no_request_found"]], 'status': 400}
 
