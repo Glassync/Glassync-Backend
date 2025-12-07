@@ -8,6 +8,11 @@ def create_cron_job(command: str | list[str], schedule: str) -> bool:
     :param command: комманда
     :param schedule: cron-выражение
     """
+    if isinstance(command, list):
+        command_str = " ".join(command)
+    else:
+        command_str = command
+
     user_cron = CronTab(user=True)
 
     # Собираем все задания с таким же командным текстом
