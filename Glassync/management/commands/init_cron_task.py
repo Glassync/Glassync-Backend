@@ -14,7 +14,7 @@ class Command(BaseCommand):
             return -1
 
         # Вызов команды отправки уведомлений
-        command = "python manage.py send_notification"
+        command = '/bin/bash -c "source /app/.env && /usr/bin/python3 /app/manage.py send_notifications >> /var/log/my_cron.log 2>&1"'
         # Правило выполнения 1 раз в минуту
         scheduler = '* * * * *'
         # Создать задачу
