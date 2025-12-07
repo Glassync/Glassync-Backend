@@ -53,6 +53,7 @@ class Command(BaseCommand):
                 print(f"Message sent to {task.id_user.first_name} ({chat_id})\n Message text: {text}")
             except Exception as e:
                 print(f"Failed to send to {task.id_user.first_name} ({chat_id})\n Message text: {text}\n Error: {e}")
+        tasks.delete()
 
     @staticmethod
     def __get_tasks_for_current_minute(platform: NotificationPlatform):
