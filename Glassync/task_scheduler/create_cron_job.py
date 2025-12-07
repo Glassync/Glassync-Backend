@@ -10,13 +10,14 @@ def create_cron_job(command: str | list[str], schedule: str) -> bool:
     """
     user_cron = CronTab(user=True)
 
-    # Поиск и удаление всех задач с такой командой
-    jobs = list(user_cron.find_command(command))
-    for job in jobs:
+    # Собираем все задания с таким же командным текстом
+    jobs_to_remove = [job for job in user_cron if job.command == command_str]
+
+    for job in jobs_to_remove:
         user_cron.remove(job)
 
-    # Создание новой задачи с заданным расписанием
-    job = user_cron.new(command=command)
+    # Создаём новую задачу
+    job = user_cron.new(command=command_str)
     job.setall(schedule)
 
     user_cron.write()
