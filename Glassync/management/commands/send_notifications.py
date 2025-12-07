@@ -68,7 +68,6 @@ class Command(BaseCommand):
         # Фильтруем задачи по платформе и времени в диапазоне
         tasks = Task.objects.filter(
             platform=platform,
-            time__gte=start_time,
             time__lt=end_time
         )
         return tasks
