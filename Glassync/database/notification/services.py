@@ -39,6 +39,7 @@ def set_event_notification_interval(id_event, id_user, notification_interval_in_
             notification_interval_in_minutes=interval
         )
     except Exception as e:
+        print("ERROR during UserEventNotificationSettings.objects.create:", repr(e))
         return {
             "errors": [ERRORS["fields"]["user_event_notification_settings_failed"]],
             "details": str(e)
