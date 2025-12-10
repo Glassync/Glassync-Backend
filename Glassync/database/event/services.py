@@ -193,8 +193,8 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
                         "date": event.date,
                         "time_start": event.time_start,
                         "time_end": event.time_end,
-                        "recurrence_rule_type": event.recurrence_rule_type,
-                        "recurrence_rule_interval": event.recurrence_rule_interval,
+                        "recurrence_rule_type": event.recurrence_rule_type if event.recurrence_rule_type is not None else "none",
+                        "recurrence_rule_interval": event.recurrence_rule_interval if event.recurrence_rule_interval is not None else 0,
                         "creator_id": event.creator_id,
                         "notifications": get_notification_times(user_uid, event.id),
                     }
@@ -209,7 +209,6 @@ def get_event_by_uids(user_uid, event_uids, detailed=False):
         return {}
     except Exception as e:
         return {}
-
 
 def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed=False):
     if own_uid != user_uid and not are_friends(own_uid, user_uid):
@@ -260,8 +259,8 @@ def get_event_by_user_and_date(own_uid, user_uid, start_date, end_date, detailed
                     "date": event.date,
                     "time_start": event.time_start,
                     "time_end": event.time_end,
-                    "recurrence_rule_type": event.recurrence_rule_type,
-                    "recurrence_rule_interval": event.recurrence_rule_interval,
+                    "recurrence_rule_type": event.recurrence_rule_type if event.recurrence_rule_type is not None else "none",
+                    "recurrence_rule_interval": event.recurrence_rule_interval if event.recurrence_rule_interval is not None else 0,
                     "creator_id": event.creator_id,
                     "notifications": get_notification_times(user_uid, event.id),
                 }
