@@ -138,6 +138,9 @@ def create_or_update_event(
 
     event.save()
 
+    if not event_id:
+        event_id = event.id
+
     if notifications is not None:
         notif_errors = []
         for interval in notifications:
