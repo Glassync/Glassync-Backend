@@ -26,6 +26,10 @@ def create_or_update_event(
     """
     errors = []
 
+    if recurrence_rule_type == "none" and (recurrence_rule_interval == 0 or recurrence_rule_interval == "0"):
+        recurrence_rule_type = None
+        recurrence_rule_interval = None
+
     if event_id:
         # Update existing event
         try:
