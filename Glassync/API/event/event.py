@@ -49,6 +49,7 @@ def create(request: HttpRequest):
             recurrence_rule_type=data.get("recurrence_rule_type"),
             recurrence_rule_interval=data.get("recurrence_rule_interval"),
             creator=request.user,
+            user_id=request.user.id,
             notifications=data.get("notifications", None),
         )
         if 'errors' in result:
