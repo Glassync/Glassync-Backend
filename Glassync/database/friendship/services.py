@@ -12,8 +12,14 @@ def get_relationship_row(user1, user2):
         )
         return relationship, relationship.status_user1, relationship.status_user2
     except ObjectDoesNotExist:
-        return None, None, None
-
+        try:
+            relationship = UsersRelationship.objects.get(
+                id_user1=user2,
+                id_user2=user1
+            )
+            return relationship, relationship.status_user2, relationship.status_user1
+        except ObjectDoesNotExist:
+            return None, None, None
 
 def check_status(user1, user2):
     relationship, user1_status, user2_status = get_relationship_row(user1, user2)
@@ -90,6 +96,8 @@ def delete_friendship(user_sender, user_receiver):
     status = check_status(user_sender, user_receiver)
     if status == "friends":
         relationship, _, _ = get_relationship_row(user_sender, user_receiver)
+        if relationship is None:
+            return {'errors': [ERRORS["friendship"]["no_friendship_found"]], 'status': 400}
         relationship.delete()
         return {'message': 'Friendship deleted', 'status': 200}
     return {'errors': [ERRORS["friendship"]["no_friendship_found"]], 'status': 400}
